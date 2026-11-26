@@ -4,6 +4,13 @@ Workhunt provides evidence-based job and paid-project research skills, an option
 
 Project-owned code and documentation are **AGPL-3.0-only**. See [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md). The original supplied Job Hunt Kit's sharing statement is not explicit AGPL relicensing permission; that provenance limitation remains documented before public distribution.
 
+## Special thanks
+
+Thank you to the people who shared resources that helped make this project possible:
+
+- **[Itai Ahiraz](https://www.linkedin.com/in/itai-ahiraz/)** — for creating and sharing [israel-job-search](https://github.com/ahiraz/israel-job-search), a valuable resource for Workhunt's Israeli job-search integration.
+- **[Shahar Bar](https://www.linkedin.com/in/bshahar/)** — for sharing his **Job Hunt Kit** for Claude, which helped shape Workhunt's job-search workflow and collector.
+
 ## Private setup
 
 Use [workhunt-configure-profile](skills/workhunt-configure-profile/SKILL.md) with a CV you supply or explicitly select. It maps supported facts and explicit preferences into `.workhunt/profile.json`, keeps provenance/conflicts in `.workhunt/profile-evidence.json`, and prepares a private summary. Shared [templates](templates/profile.template.json) stay empty. No default identity, stack, geography, degree, skill tenure or enabled source is supplied.
