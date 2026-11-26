@@ -2,15 +2,15 @@
 import copy
 import hashlib
 from pathlib import Path
-from records import load, read_store, related_records, save, timestamp
+from records import application_evidence, load, read_store, related_records, save, timestamp
 from qualification import qualify
-from profile_config import private_root, private_path, safe_output
+from profile_config import private_root, private_path, safe_output, cv_manifest_path
 
 
 def select_cv(workdir, language, role):
     root = private_root(workdir)
     profile = load(root / "profile.json", {})
-    manifest = load(private_path(root, profile.get("cv_manifest", "cv-manifest.json")), {})
+    manifest = load(cv_manifest_path(root, profile), {})
     candidates = [v for v in manifest.get("versions", []) if v.get("language") == language and role in v.get("roles", []) and v.get("selection_status") == "current"]
     if len(candidates) != 1:
         raise ValueError("No unambiguous current CV manifest entry for this language/role")
@@ -79,8 +79,14 @@ def record_submission_event(workdir, identity, event):
     row = matches[0] if matches else copy.deepcopy(identity)
     if not matches:
         applied["records"].append(row)
+    previous = row.get("submission")
+    if not isinstance(previous, dict) and ("submission_status" in row or application_evidence(row)["latest"] is not None):
+        previous = {key: copy.deepcopy(value) for key, value in row.items()
+                    if key not in {"submission", "submission_events", "submission_snapshots"}}
+    if isinstance(previous, dict) and previous not in row.setdefault("submission_snapshots", []):
+        row["submission_snapshots"].append(copy.deepcopy(previous))
     row.setdefault("submission_events", []).append(copy.deepcopy(event))
-    row["submission"] = copy.deepcopy(event)
+    row["submission"] = application_evidence(row)["latest"]
     # Suppression is a separate user/history decision; do not silently change it.
     applied.pop("_history_available", None)
     save(private_root(workdir) / "data/applied_jobs.json", applied)

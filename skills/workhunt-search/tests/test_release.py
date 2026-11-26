@@ -218,9 +218,10 @@ class PlacementTests(unittest.TestCase):
             self.assertEqual(before, (hashes(private), hashes(clone / "templates")))
             self.assertFalse((clone / "data").exists())
             self.assertEqual(json.loads((clone / "skills/workhunt-search/assets/profile.example.json").read_text())["name"], "")
+            expected, _, _ = installer.package(clone)
             for provider in refresh.PROVIDERS:
-                for package in refresh.packages(clone):
-                    self.assertEqual(hashes(package), hashes(clone / provider / "skills" / package.name))
+                for key, data in expected.items():
+                    self.assertEqual(data, (clone / provider / "skills" / key).read_bytes())
 
     def test_explicit_isolated_install_preserves_unrelated_and_rejects_modified_files(self):
         with tempfile.TemporaryDirectory(prefix="workhunt-install-") as folder:
@@ -230,7 +231,7 @@ class PlacementTests(unittest.TestCase):
                 root.mkdir(parents=True)
                 unrelated = root / "unrelated.txt"; unrelated.write_text("keep")
                 result = installer.install(root)
-                self.assertEqual(len(result["skills"]), 16)
+                self.assertEqual(result["skills"], 17)
                 installer.install(root, check=True)
                 self.assertEqual(unrelated.read_text(), "keep")
                 path = root / "workhunt-configure-profile/SKILL.md"

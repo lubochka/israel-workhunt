@@ -1,0 +1,6 @@
+interface:
+  display_name: "Maintain employer sources"
+  short_description: "Review source imports, private overrides and observed health"
+  default_prompt: "Use $workhunt-maintain-sources for the requested source maintenance with preserved provenance and private overrides."
+policy:
+  allow_implicit_invocation: true

@@ -9,3 +9,7 @@ Read the private profile/evidence ledger and `docs/skills/WORKHUNT_CONTEXT.md` i
 
 
 Read [workflow](references/workflow.md) for this task, then use [record](assets/record.md) for the requested local output. Keep completed records in `.workhunt/`. Do not count this template as a completed check.
+
+## Workspace resolution
+
+Run this skill's `scripts/resolve_workspace.py [--workspace PATH]` when the workspace is uncertain. Precedence is explicit path, current checkout, then private `workspace.local.json` fallback; `workspace.json` is an unbound portable descriptor. Shared references under `references/workspace/` point to exact files in that resolved workspace; private records and CVs are never bundled. Keep automatic skill selection enabled.

@@ -9,6 +9,29 @@ from records import history_decision, norm, timestamp, url_identity
 LOGIN_LABEL = "Login required; not verified beyond this point"
 
 
+def normalize_route(value):
+    route = copy.deepcopy(value) if isinstance(value, dict) else {}
+    recorded_status = route.get("status") or route.get("decision")
+    route["status"] = {"exact_application_form_verified": "form_observed", "qualified_login": "login_required"}.get(recorded_status, recorded_status)
+    # The legacy qualified-login decision explicitly encoded the exact-vacancy
+    # acceptance conclusion. It still needs recorded evidence.
+    if recorded_status == "qualified_login":
+        route.setdefault("exact_vacancy_accepting_applications", True)
+    route.setdefault("source_url", route.get("exact_job_url") or route.get("url"))
+    route.setdefault("checked_at", route.get("verified_at"))
+    route.setdefault("job_identifier", route.get("job_id_in_page"))
+    return route
+
+
+def route_evidence_recorded(value, allow_proposal=True):
+    """Saved route evidence only; freshness and exact linkage are separate checks."""
+    route = normalize_route(value)
+    return bool(route.get("evidence")) and (
+        route.get("status") == "form_observed"
+        or allow_proposal and route.get("status") == "proposal_observed"
+        or route.get("status") == "login_required" and route.get("exact_vacancy_accepting_applications") is True)
+
+
 def search_brief(profile, now, saved=None):
     config = copy.deepcopy(saved or profile.get("search_brief") or {})
     run_type = config.get("run_type", "manual")
@@ -25,7 +48,7 @@ def search_brief(profile, now, saved=None):
     if end.astimezone(dt.timezone.utc) - start.astimezone(dt.timezone.utc) != dt.timedelta(hours=24):
         raise ValueError("The active freshness window must be exactly 24 hours")
     return {**config, "run_type": run_type, "requested_minimum": minimum, "result_cap": cap,
-            "timezone": profile["timezone"], "window_start": start.isoformat(), "window_end": end.isoformat(),
+            "timezone": profile["timezone"], "language": profile.get("language"), "window_start": start.isoformat(), "window_end": end.isoformat(),
             "tracks": config.get("tracks", list(profile["tracks"])),
             "required_stack": config.get("required_stack", []),
             "eligible_countries": profile["eligible_countries"],
@@ -34,8 +57,10 @@ def search_brief(profile, now, saved=None):
             "completed_qualifications": [str(item.get("id") or item.get("qualification") or item.get("name")) for item in profile.get("education", []) if item.get("completed") is True and item.get("evidence_ids")],
             "freshness_events": ["original", "first_published", "refresh", "repost", "last_published"],
             "destination": config.get("destination", "current_chat"),
-            "authorized_methods": config.get("authorized_methods", ["public_search", "public_pages", "isolated_hidden_browser"]),
-            "authorized_actions": config.get("authorized_actions", ["local_records", "local_drafts"]),
+            "manual_source_freshness_hours": config.get("manual_source_freshness_hours", {}),
+            "manual_freshness_policy": config.get("manual_freshness_policy", {}),
+            "authorized_methods": [],
+            "authorized_actions": [],
             "silence_if_zero": run_type == "notification"}
 
 
@@ -47,7 +72,7 @@ def score_requirements(requirements):
         key = norm(item.get("criterion_id") or item.get("requirement"))
         if not key:
             key = "unidentified:" + str(len(distinct))
-        supported = item.get("met") is True and bool(item.get("evidence"))
+        supported = item.get("met") is True and bool(item.get("evidence")) or (item.get("alternative_explicitly_accepted") is True and item.get("alternative_met") is True and bool(item.get("alternative_evidence")))
         if key not in distinct:
             distinct[key] = {**item, "supported": supported}
         elif not supported:
@@ -84,7 +109,7 @@ def freshness(review, brief):
     return {"passed": False, "reason": "No supported publication/refresh interval wholly inside the fixed 24-hour window"}
 
 
-def qualify(job, review, brief, now, found=None, applied=None):
+def qualify(job, review, brief, now, found=None, applied=None, history_index=None):
     review = copy.deepcopy(review or {})
     score = score_requirements(review.get("requirements", []))
     hard = []
@@ -101,13 +126,13 @@ def qualify(job, review, brief, now, found=None, applied=None):
             years = float(match[1]) if match else 0
         if isinstance(cap, (int, float)) and isinstance(years, (int, float)) and years > cap and not item["supported"] and not (item.get("alternative_met") is True and item.get("alternative_evidence")):
             hard.append("Requirement exceeds supported technology duration: " + item.get("requirement", technology))
-    route = review.get("route") if isinstance(review.get("route"), dict) else {}
+    route = normalize_route(review.get("route"))
     if route.get("status") == "closed":
         hard.append("Application route recorded as closed")
     deadline = timestamp(job.get("deadline"))
     if deadline and deadline < now:
         hard.append("Recorded application deadline has passed")
-    history = history_decision(job, found or {"opportunities": []}, applied or {"records": []})
+    history = history_decision(job, found or {"opportunities": []}, applied or {"records": []}, history_index)
     history_known = found is not None and applied is not None and found.get("_history_available", True) and applied.get("_history_available", True)
     role = review.get("role") if isinstance(review.get("role"), dict) else {}
     stack = review.get("stack") if isinstance(review.get("stack"), dict) else {}
@@ -133,11 +158,9 @@ def qualify(job, review, brief, now, found=None, applied=None):
         and bool(route.get("navigation_evidence")))
     specific = specific and linked
     current = checked is not None and 0 <= (now.astimezone(dt.timezone.utc) - checked.astimezone(dt.timezone.utc)).total_seconds() <= 24 * 3600
-    route_pass = specific and current and (route.get("status") == "form_observed" or route.get("status") == "login_required" and route.get("exact_vacancy_accepting_applications") is True)
+    route_pass = specific and current and route_evidence_recorded(route, allow_proposal=job.get("type") == "project")
     if route.get("status") == "login_required":
-        route["label"] = LOGIN_LABEL
-    if job.get("type") == "project" and route.get("status") == "proposal_observed":
-        route_pass = specific and current
+        route["label"] = {"he": "דורש התחברות; לא אומת מעבר לכך", "ru": "Требуется вход; дальнейшая проверка не выполнена"}.get(brief.get("language"), LOGIN_LABEL)
     fresh = freshness(review, brief)
     checks = {
         "description": description,

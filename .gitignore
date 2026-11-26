@@ -27,3 +27,13 @@ __pycache__/
 *.py[cod]
 .venv/
 .pytest_cache/
+outcomes/
+reports/
+logs/
+*.log
+workspace.local.json
+packet-evidence*.json
+packet-authorization*.json
+submission-event*.json
+source-health.json
+employer-overrides.json

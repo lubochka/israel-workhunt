@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 from scan import web_url
 from profile_config import private_root, load_profile, safe_output
-from records import load, read_store, display_job, related_records, application_state
-from qualification import qualify, search_brief
+from records import load, read_store, display_job, related_records, application_evidence, application_state
+from qualification import normalize_route, qualify, search_brief
 from zoneinfo import ZoneInfo
 
 HERE = Path(__file__).resolve().parent
@@ -28,12 +28,7 @@ def canonical_review(job):
         review.setdefault("reason", fit.get("evidence", ""))
     route = job.get("route") or job.get("application_route") or {}
     if isinstance(route, dict) and "route" not in review:
-        route = dict(route)
-        route.setdefault("source_url", route.get("exact_job_url") or route.get("url", ""))
-        route.setdefault("checked_at", route.get("verified_at", ""))
-        route.setdefault("job_identifier", route.get("job_id_in_page", ""))
-        route["status"] = {"exact_application_form_verified": "form_observed", "qualified_login": "login_required"}.get(route.get("status"), route.get("status", "unverified"))
-        review["route"] = route
+        review["route"] = normalize_route(route)
     return review
 
 
@@ -80,8 +75,10 @@ def render(workdir, run=None, fixture=False, output=None, search_run_id=None):
         review = {**reviews.get(j["id"], {}), **canonical_review(j)}
         j["review"] = effective_review(j, review, profile, now, found, applied, brief)
         records = related_records(j, applied["records"])
-        submission = next((r for r in records if r.get("submission") or r.get("submission_status")), None)
-        j["application_state"] = application_state(submission or j.get("submission") or legacy_applications.get(j["id"], {}), now)
+        candidates = records + ([j] if any(key in j for key in ("submission", "submission_status", "submission_events", "submission_snapshots")) else [])
+        snapshots = [evidence["latest"] for evidence in (application_evidence(row, now) for row in candidates) if evidence["latest"] is not None]
+        submission = {"submission_snapshots": snapshots} if snapshots else candidates[0] if candidates else legacy_applications.get(j["id"], {})
+        j["application_state"] = application_state(submission, now)
         if j["application_state"] == "not_recorded" and j.get("application_packet"):
             j["application_state"] = "prepared"
         j.pop("source_payload", None)
@@ -98,9 +95,9 @@ def render(workdir, run=None, fixture=False, output=None, search_run_id=None):
     output = Path(output).resolve() if output else workdir / ("fixture-preview.html" if fixture else "jobs.html")
     output = safe_output(workdir, output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(text, encoding="utf-8")
+    output.write_bytes(text.encode("utf-8"))
     if run and output.parent == workdir:
-        (run / "jobs.html").write_text(text, encoding="utf-8")
+        (run / "jobs.html").write_bytes(text.encode("utf-8"))
     return output
 
 

@@ -26,7 +26,7 @@ The snapshot contains **288 records and 288 unique provider/token pairs**. Each 
 | Recruitee | 3 |
 | **Total** | **288** |
 
-These are counts of reference-board identities at the pinned revision. Current availability and open-job counts require a separate live check. The raw snapshot is input for an explicitly requested import; the normalized active registry and health/override records are local to `.workhunt/sources/`. Importing the source does not enable or run searches.
+These are counts of reference-board identities at the pinned revision. Current availability and open-job counts require a separate live check. The raw snapshot is input for an explicitly requested import; the sanitized shared seed starts with imported/unverified defaults, while active private registry updates and health/override records stay in `.workhunt/sources/`. Importing the source does not enable or run searches.
 
 ## Retained authorship and source chain
 

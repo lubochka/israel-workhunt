@@ -3,12 +3,13 @@ import copy
 import datetime as dt
 import importlib.util
 import json
+import shutil
 from pathlib import Path
 import subprocess
 import sys
 import unittest
 from unittest.mock import patch
-from test_kit import OfflineCase, read_page, opportunity, board, gh_row
+from test_kit import OfflineCase, read_page, opportunity, board, gh_row, synthetic_profile
 import adapters
 import outcomes
 import qualification
@@ -32,10 +33,10 @@ refresh = module("workhunt_refresh", ROOT / "tools/refresh_workhunt_references.p
 
 
 class PackagingTests(OfflineCase):
-    def test_complete_16_skill_temp_home_install_check_and_private_data_exclusion(self):
+    def test_complete_17_skill_temp_home_install_check_and_private_data_exclusion(self):
         root = self.work / "home with spaces/.agents/skills"
         result = installer.install(root)
-        self.assertEqual(result["skills"], 16)
+        self.assertEqual(result["skills"], 17)
         self.assertTrue(installer.install(root, check=True)["references_verified"])
         inventory = installer.inventory(root)
         self.assertFalse(any(key.endswith((".pdf", ".docx")) or "/data/jobs.json" in key or "/data/applied_jobs.json" in key for key in inventory))
@@ -59,7 +60,8 @@ class PackagingTests(OfflineCase):
     def test_resolver_prefers_explicit_then_cwd_then_installed_fallback_with_spaces(self):
         other = self.work / "workspace with spaces"
         (other / "docs/skills").mkdir(parents=True)
-        (other / "profile.json").write_text("{}", encoding="utf-8")
+        (other / "templates").mkdir()
+        (other / "templates/profile.template.json").write_text("{}", encoding="utf-8")
         (other / "docs/skills/WORKHUNT_CONTEXT.md").write_text("Fixture context", encoding="utf-8")
         destination = self.work / "installed home/.agents/skills"
         installer.install(destination, workspace=other)
@@ -70,22 +72,20 @@ class PackagingTests(OfflineCase):
             self.assertEqual(Path(result.stdout.strip()), other)
 
     def test_refresh_preserves_metadata_and_does_not_create_legacy_records(self):
-        for name in installer.ENTRY_NAMES:
-            (self.work / "skills" / name / "references").mkdir(parents=True)
-        runtime = self.work / "skills/workhunt-search/references/runtime.md"
-        runtime.write_text("Current fixture runtime", encoding="utf-8")
-        metadata = self.work / "skills/workhunt-search/agents/openai.yaml"
-        metadata.parent.mkdir()
-        metadata.write_text("policy:\n  allow_implicit_invocation: true\n", encoding="utf-8")
-        refresh.refresh(self.work)
-        self.assertEqual(metadata.read_text("utf-8"), "policy:\n  allow_implicit_invocation: true\n")
-        self.assertFalse(any((self.work / name).exists() for name in ("applications.json", "manual-opportunities.json", "reviews.json")))
-        self.assertEqual(refresh.refresh(self.work, check=True)["changed"], [])
+        clone = self.work / "release"
+        shutil.copytree(ROOT, clone, ignore=shutil.ignore_patterns(".git", "__pycache__", ".workhunt"))
+        metadata = clone / "skills/workhunt-search/agents/openai.yaml"
+        before = metadata.read_bytes()
+        refresh.refresh(clone)
+        self.assertEqual(metadata.read_bytes(), before)
+        self.assertFalse(any((clone / name).exists() for name in ("applications.json", "manual-opportunities.json", "reviews.json")))
+        self.assertEqual(refresh.refresh(clone, check=True)["changed_files"], 0)
 
 
 class CurrentIntegrationTests(OfflineCase):
-    def test_actual_default_profile_selects_288_employers_19_feeds_and_existing_three(self):
-        profile = records.load(ROOT / "profile.json")
+    def test_explicit_synthetic_profile_selects_shared_288_employers_and_19_feeds(self):
+        profile = synthetic_profile()
+        profile.update(employer_registry_enabled=True, techmap_enabled=True, techmap_categories=source_registry.TECHMAP_CATEGORIES, directory_enabled=False)
         with patch.object(scan, "get", return_value=json.dumps({"companies": []})):
             boards, failures = scan.collect_boards(profile, ROOT)
         self.assertEqual(len(boards), 307)
@@ -103,7 +103,7 @@ class CurrentIntegrationTests(OfflineCase):
 
     def test_explicit_secondary_israel_survives_us_primary(self):
         job = opportunity(location="Chicago, us | Tel Aviv, il", country_stated="US", countries_stated=["US", "IL"])
-        self.assertEqual(scan.classify(job, self.profile)["location_scope"], "israel")
+        self.assertEqual(scan.classify(job, self.profile)["location_scope"], "configured_geography")
 
     def test_response_size_limit_fails_before_parsing_truncated_data(self):
         self.no_network.stop()

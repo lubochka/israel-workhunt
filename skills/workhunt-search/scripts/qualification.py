@@ -9,6 +9,29 @@ from records import history_decision, norm, timestamp, url_identity
 LOGIN_LABEL = "Login required; not verified beyond this point"
 
 
+def normalize_route(value):
+    route = copy.deepcopy(value) if isinstance(value, dict) else {}
+    recorded_status = route.get("status") or route.get("decision")
+    route["status"] = {"exact_application_form_verified": "form_observed", "qualified_login": "login_required"}.get(recorded_status, recorded_status)
+    # The legacy qualified-login decision explicitly encoded the exact-vacancy
+    # acceptance conclusion. It still needs recorded evidence.
+    if recorded_status == "qualified_login":
+        route.setdefault("exact_vacancy_accepting_applications", True)
+    route.setdefault("source_url", route.get("exact_job_url") or route.get("url"))
+    route.setdefault("checked_at", route.get("verified_at"))
+    route.setdefault("job_identifier", route.get("job_id_in_page"))
+    return route
+
+
+def route_evidence_recorded(value, allow_proposal=True):
+    """Saved route evidence only; freshness and exact linkage are separate checks."""
+    route = normalize_route(value)
+    return bool(route.get("evidence")) and (
+        route.get("status") == "form_observed"
+        or allow_proposal and route.get("status") == "proposal_observed"
+        or route.get("status") == "login_required" and route.get("exact_vacancy_accepting_applications") is True)
+
+
 def search_brief(profile, now, saved=None):
     config = copy.deepcopy(saved or profile.get("search_brief") or {})
     run_type = config.get("run_type", "manual")
@@ -34,6 +57,8 @@ def search_brief(profile, now, saved=None):
             "completed_qualifications": [str(item.get("id") or item.get("qualification") or item.get("name")) for item in profile.get("education", []) if item.get("completed") is True and item.get("evidence_ids")],
             "freshness_events": ["original", "first_published", "refresh", "repost", "last_published"],
             "destination": config.get("destination", "current_chat"),
+            "manual_source_freshness_hours": config.get("manual_source_freshness_hours", {}),
+            "manual_freshness_policy": config.get("manual_freshness_policy", {}),
             "authorized_methods": [],
             "authorized_actions": [],
             "silence_if_zero": run_type == "notification"}
@@ -101,7 +126,7 @@ def qualify(job, review, brief, now, found=None, applied=None, history_index=Non
             years = float(match[1]) if match else 0
         if isinstance(cap, (int, float)) and isinstance(years, (int, float)) and years > cap and not item["supported"] and not (item.get("alternative_met") is True and item.get("alternative_evidence")):
             hard.append("Requirement exceeds supported technology duration: " + item.get("requirement", technology))
-    route = review.get("route") if isinstance(review.get("route"), dict) else {}
+    route = normalize_route(review.get("route"))
     if route.get("status") == "closed":
         hard.append("Application route recorded as closed")
     deadline = timestamp(job.get("deadline"))
@@ -133,11 +158,9 @@ def qualify(job, review, brief, now, found=None, applied=None, history_index=Non
         and bool(route.get("navigation_evidence")))
     specific = specific and linked
     current = checked is not None and 0 <= (now.astimezone(dt.timezone.utc) - checked.astimezone(dt.timezone.utc)).total_seconds() <= 24 * 3600
-    route_pass = specific and current and (route.get("status") == "form_observed" or route.get("status") == "login_required" and route.get("exact_vacancy_accepting_applications") is True)
+    route_pass = specific and current and route_evidence_recorded(route, allow_proposal=job.get("type") == "project")
     if route.get("status") == "login_required":
         route["label"] = {"he": "דורש התחברות; לא אומת מעבר לכך", "ru": "Требуется вход; дальнейшая проверка не выполнена"}.get(brief.get("language"), LOGIN_LABEL)
-    if job.get("type") == "project" and route.get("status") == "proposal_observed":
-        route_pass = specific and current
     fresh = freshness(review, brief)
     checks = {
         "description": description,

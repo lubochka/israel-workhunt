@@ -25,33 +25,79 @@ def location_text(locations):
     return " | ".join(dict.fromkeys(x for x in values if x))
 
 
+def smart_fields(row, plain):
+    """Sanitize observed detail fields without discarding safe same-posting facts."""
+    issues = []
+    def text(value, field, default=""):
+        if value is None:
+            return default
+        if not isinstance(value, str):
+            issues.append(field)
+            return default
+        return value
+    ad = row.get("jobAd")
+    sections = ad.get("sections") if isinstance(ad, dict) else None
+    if not isinstance(sections, dict):
+        issues.append("jobAd.sections")
+        sections = {}
+    safe_sections = {}
+    for key, value in sections.items():
+        if not isinstance(value, dict):
+            issues.append("section:" + str(key))
+            continue
+        safe_sections[key] = {"title": text(value.get("title"), "section.title", str(key)),
+                              "text": text(value.get("text"), "section.text")}
+    body = "\n\n".join(plain(value["title"] or key) + "\n" + plain(value["text"]) for key, value in safe_sections.items())
+    locations = []
+    raw_locations = [row["location"]] if row.get("location") is not None else []
+    for key in ("locations", "secondaryLocations"):
+        values = row.get(key, [])
+        if not isinstance(values, list):
+            issues.append(key)
+        else:
+            raw_locations.extend(values)
+    for location in raw_locations:
+        if isinstance(location, str):
+            locations.append(location)
+        elif isinstance(location, dict):
+            locations.append({key: text(location[key], "location." + key) for key in ("name", "city", "region", "country") if key in location})
+        else:
+            issues.append("location")
+    def label(key, default=""):
+        value = row.get(key)
+        if isinstance(value, dict):
+            return text(value.get("label"), key + ".label", default)
+        return text(value, key, default)
+    work_model, employment_type = label("workplaceType", "unknown"), label("typeOfEmployment")
+    scalars = {key: text(row.get(key), key) for key in ("name", "postingUrl", "applyUrl", "releasedDate")}
+    complete = row.get("_detail_complete") is not False and not issues and all(k in safe_sections for k in ("jobDescription", "qualifications")) and bool(plain(safe_sections.get("jobDescription", {}).get("text", "")))
+    return {"text": body, "locations": locations, "work_model": work_model, "employment_type": employment_type,
+            "complete": bool(complete), "scalars": scalars, "issues": issues}
+
+
 def smart_normalize(board, rows, plain):
-    result = []
+    result, errors = [], []
     for row in rows:
         ident = str(row.get("id") or row.get("uuid") or "")
         if not ident:
             raise ValueError("SmartRecruiters posting has no exact ID")
-        sections = (row.get("jobAd") or {}).get("sections") or {}
-        sections = sections if isinstance(sections, dict) else {}
-        complete = row.get("_detail_complete") is not False and all(isinstance(sections.get(k), dict) for k in ("jobDescription", "qualifications")) and bool(plain(sections.get("jobDescription", {}).get("text")))
-        text = "\n\n".join(plain(value.get("title") or key) + "\n" + plain(value.get("text", ""))
-                           for key, value in sections.items() if isinstance(value, dict))
-        locations = [row["location"]] if row.get("location") else []
-        locations += row.get("locations", []) + row.get("secondaryLocations", [])
-        countries = list(dict.fromkeys(str(x.get("country")) for x in locations if isinstance(x, dict) and x.get("country")))
+        fields = smart_fields(row, plain)
+        complete, locations, scalars = fields["complete"], fields["locations"], fields["scalars"]
+        if not complete:
+            errors.append({"job_id": ident, "error": "Detail unavailable, incomplete or malformed", "fields": fields["issues"]})
+        countries = list(dict.fromkeys(x["country"] for x in locations if isinstance(x, dict) and x.get("country")))
         result.append({"id": f"{board['key']}:{ident}", "job_id": ident, "employer_requisition_id": row.get("refNumber"),
                        "provider": "smartrecruiters", "board_key": board["key"], "company": board["company"],
-                       "title": row.get("name", ""), "url": row.get("postingUrl", ""), "apply_url": row.get("applyUrl", ""),
-                       "description": text, "description_complete": complete, "description_status": "complete_api_detail" if complete else "detail_failed_or_incomplete",
-                       "active": row.get("active"), "locations": locations, "location": location_text(locations),
+                       "title": scalars["name"], "url": scalars["postingUrl"], "apply_url": scalars["applyUrl"],
+                       "description": fields["text"], "description_complete": complete, "description_status": "complete_api_detail" if complete else "detail_failed_or_incomplete",
+                       "active": row.get("active") if type(row.get("active")) is bool else None, "locations": locations, "location": location_text(locations),
                        "countries_stated": countries, "country_stated": countries[0] if len(countries) == 1 else "",
-                       "work_model_stated": (row.get("workplaceType") or {}).get("label", "unknown") if isinstance(row.get("workplaceType"), dict) else row.get("workplaceType", "unknown"),
-                       "employment_type": (row.get("typeOfEmployment") or {}).get("label", ""),
-                       "released_at": row.get("releasedDate", ""), "release_semantics": "Provider release timestamp; original publication not established",
+                       "work_model_stated": fields["work_model"], "employment_type": fields["employment_type"],
+                       "released_at": scalars["releasedDate"], "release_semantics": "Provider release timestamp; original publication not established",
                        "first_published_at": "", "last_published_at": "", "updated_at": "",
                        "application_status": "listing_only", "source": "public_ats", "source_payload": row,
-                       "provider_identifiers": {k: row[k] for k in ("id", "uuid", "jobId", "jobAdId", "refNumber") if k in row}})
-    return result
+                       "provider_identifiers": {k: row[k] for k in ("id", "uuid", "jobId", "jobAdId", "refNumber") if k in row and isinstance(row[k], (str, int))}})
+    return FetchResult(result, errors)
 
 
 def smart_fetch(board, get, plain):
@@ -78,9 +124,6 @@ def smart_fetch(board, get, plain):
                     if not isinstance(detail, dict) or str(detail.get("id") or detail.get("uuid") or "") != ident:
                         raise ValueError("SmartRecruiters detail identity mismatch")
                     available = {**item, **detail}
-                    sections = (detail.get("jobAd") or {}).get("sections")
-                    if not isinstance(sections, dict) or not all(isinstance(sections.get(k), dict) for k in ("jobDescription", "qualifications")) or not plain(sections.get("jobDescription", {}).get("text")):
-                        raise ValueError("SmartRecruiters detail has no full description sections")
                     rows.append({**item, **detail, "_detail_complete": True})
                 except Exception as exc:
                     rows.append({**available, "_detail_complete": False})
@@ -91,7 +134,8 @@ def smart_fetch(board, get, plain):
         except Exception as exc:
             errors.append({"error": type(exc).__name__ + ": list pagination incomplete", "offset": offset})
             break
-    return FetchResult(smart_normalize(board, rows, plain), errors)
+    normalized = smart_normalize(board, rows, plain)
+    return FetchResult(normalized, errors + normalized.errors)
 
 
 def techmap_parse(board, text):

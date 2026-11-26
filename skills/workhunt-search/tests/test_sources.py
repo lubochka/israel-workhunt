@@ -55,7 +55,7 @@ class SmartRecruitersTests(OfflineCase):
         self.assertIn("Tel Aviv", result[0]["location"])
         self.assertEqual(result[0]["provider_identifiers"]["refNumber"], "REF-0")
         self.assertEqual(result[0]["first_published_at"], "")
-        self.assertEqual(scan.classify(result[0], self.profile)["location_scope"], "israel")
+        self.assertEqual(scan.classify(result[0], self.profile)["location_scope"], "configured_geography")
 
     def test_failed_detail_retains_identity_and_marks_board_partial(self):
         def transport(url):
@@ -144,6 +144,7 @@ class TechmapTests(OfflineCase):
             adapters.techmap_parse({"key": "techmap::x", "category": "x", "url": "https://example.invalid/feed"}, "title,url\nNo full schema,https://example.invalid")
 
     def test_generic_title_stays_reviewable_without_inferred_stack(self):
+        self.profile["tracks"]["development"]["title"] = "Developer|Software Engineer"
         row = {"company": "Synthetic", "title": "Senior Software Engineer", "city": "Tel Aviv", "url": "https://example.invalid/role/11", "updated": "2026-11-26"}
         b = {"key": "techmap::software", "category": "software", "url": "https://example.invalid/software.csv"}
         job = scan.classify(adapters.techmap_parse(b, self.csv([row]))[0], self.profile)

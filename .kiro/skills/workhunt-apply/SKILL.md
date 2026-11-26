@@ -6,3 +6,7 @@ description: Prepare local applications/proposals and preserve observed submissi
 # Prepare an application
 
 Read `references/context.md`, `references/tracking.md` and `references/playbook.md`. Verify the exact opportunity, current fit/date/route/history and select the private CV by role/language. Observe actual form questions, message fields and limits; unknowns stay unresolved. Draft truthful answers and platform-specific text locally, clearly not sent. `packets.py` in the sibling `workhunt-search/scripts/` stores preparation and evidence only; it has no sending transport. Upload/send/bid/payment requires explicit bounded authorization and supported required answers. Retain prepared, uploaded, user-reported, observed submission, receipt and response as distinct states. Never infer submission from a checkbox, draft or accessible form.
+
+## Workspace resolution
+
+Run this skill's `scripts/resolve_workspace.py [--workspace PATH]` when the workspace is uncertain. Precedence is explicit path, current checkout, then private `workspace.local.json` fallback; `workspace.json` is an unbound portable descriptor. Shared references under `references/workspace/` point to exact files in that resolved workspace; private records and CVs are never bundled. Keep automatic skill selection enabled.

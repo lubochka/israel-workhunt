@@ -160,12 +160,16 @@ def update_registry(workdir, snapshot, apply=False, source_url=UPSTREAM_URL, rev
     import json
     root, snapshot = private_root(workdir), Path(snapshot)
     raw = snapshot.read_bytes()
-    previous = load(root / "sources/employer-boards.json", {})
+    profile = load(root / "profile.json", {})
+    registry_path = private_path(root, profile.get("employer_registry", "sources/employer-boards.json"))
+    previous = load(registry_path, {})
+    if not previous:
+        previous = load(shared_root(workdir) / profile.get("employer_registry", "sources/employer-boards.json"), {})
     updated = build_registry(json.loads(raw.decode("utf-8-sig")), previous, hashlib.sha256(raw).hexdigest(), source_url, revision)
-    overrides = load(root / "sources/employer-overrides.json", {})
+    overrides = load(private_path(root, profile.get("employer_overrides", "sources/employer-overrides.json")), {})
     effective_boards(updated, overrides)  # Validate without modifying local corrections.
     changed = updated != previous
     if apply and changed:
-        save(root / "sources/employer-boards.json", updated)
+        save(registry_path, updated)
     return {"changed": changed, "applied": bool(apply and changed), "boards": len(updated["boards"]),
             "snapshot_sha256": hashlib.sha256(raw).hexdigest(), "overrides_preserved": True}

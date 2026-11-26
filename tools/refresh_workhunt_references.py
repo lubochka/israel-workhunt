@@ -53,18 +53,23 @@ def plan(root=ROOT):
 
 
 def refresh(root=ROOT, check=False):
-    changes = [(path, data) for path, data in plan(root).items() if not path.is_file() or path.read_bytes() != data]
+    import install_workhunt_skills as installer
+    root = Path(root).resolve()
+    updates = plan(root)
+    changes = [(path, data) for path, data in updates.items() if not path.is_file() or path.read_bytes() != data]
     if check and changes:
         raise ValueError("Shared/provider copies need refresh: " + ", ".join(str(p.relative_to(root)) for p, _ in changes[:8]))
+    files, originals, _ = installer.package(root, overlays=updates)
+    roots = [root / host / "skills" for host in PROVIDERS]
+    for path, _ in changes:
+        if path.is_symlink() or not path.resolve().is_relative_to(root):
+            raise ValueError("Unsafe shared reference destination")
+    for destination in roots:
+        installer.plan_install(destination, files, originals, root, check, adopt_project=True)
     if not check:
         for path, data in changes:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
-    import install_workhunt_skills as installer
-    files, originals, _ = installer.package(Path(root))
-    roots = [Path(root) / host / "skills" for host in PROVIDERS]
-    for destination in roots:
-        installer.plan_install(destination, files, originals, Path(root), check, adopt_project=True)
     for destination in roots:
         installer.install(destination, check, Path(root), adopt_project=True)
     return {"packages": len(packages(Path(root))), "changed_files": len(changes), "check_only": check}

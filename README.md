@@ -13,7 +13,7 @@ Thank you to the people who shared resources that helped make this project possi
 
 ## Private setup
 
-Use [workhunt-configure-profile](skills/workhunt-configure-profile/SKILL.md) with a CV you supply or explicitly select. It maps supported facts and explicit preferences into `.workhunt/profile.json`, keeps provenance/conflicts in `.workhunt/profile-evidence.json`, and prepares a private summary. Shared [templates](templates/profile.template.json) stay empty. No default identity, stack, geography, degree, skill tenure or enabled source is supplied.
+Use [workhunt-configure-profile](skills/workhunt-configure-profile/SKILL.md) with a CV you supply or explicitly select. It maps supported facts and explicit preferences into `.workhunt/profile.json`, keeps provenance/conflicts in `.workhunt/profile-evidence.json`, prepares a private summary, and records the explicitly selected CV in a private version manifest with its measured hash. Unknown role/language mappings remain unresolved; a matching hash does not establish content review. Shared [templates](templates/profile.template.json) stay empty. No default identity, stack, geography, degree, skill tenure or enabled source is supplied.
 
 The CV should stay outside this repository. `.workhunt/` is ignored and contains all populated profiles, histories, runs, drafts, selected CV references and generated pages. Ignore rules are not permission to publish that directory. Do not import private Git history into a public repository.
 
@@ -38,7 +38,9 @@ python tools/install_workhunt_skills.py --home /explicit/sandbox/home
 python tools/install_workhunt_skills.py --home /explicit/sandbox/home --check
 ```
 
-The installer requires a destination and refuses unowned or locally modified conflicts. It installs twelve focused skills plus four runtime skills and shared empty references into supported provider roots. It never chooses the current user's home implicitly. See [source and placement map](docs/skills/SOURCE_AND_PLACEMENT_MAP.md).
+The installer uses an explicit destination or this checkout and refuses unowned or locally modified conflicts. It installs thirteen focused skills plus four runtime skills and shared empty references into supported provider roots. It never chooses the current user's home implicitly. See [source and placement map](docs/skills/SOURCE_AND_PLACEMENT_MAP.md).
+
+Shared templates resolve independently of profile existence. Installed packages use an explicit shared path, current checkout, or private local binding; distributed descriptors contain no machine paths. The [runtime contract](docs/WORKHUNT_RUNTIME.md) documents private packet preparation, outcome reports and canonical history. The [source maintenance guide](sources/EMPLOYER_SOURCES.md) describes the pinned 288-board public seed, separate from the 23-source catalog. All sources remain disabled in the empty profile.
 
 ## Release preparation
 

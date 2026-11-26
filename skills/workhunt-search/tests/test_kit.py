@@ -78,7 +78,7 @@ def synthetic_profile():
             "projects": {"label": "Projects", "title": "Freelance|Contract", "stack_all": [r"\.NET|C#", "Angular"]}},
         "project_employment_pattern": "contract|freelance|temporary",
         "matching_aliases": [{"pattern": "דוט[ -]?נט", "replacement": ".NET"}, {"pattern": "אנגולר", "replacement": "Angular"}],
-        "search_brief": {"run_type": "manual", "requested_minimum": 10,
+        "search_brief": {"run_type": "manual", "requested_minimum": 10, "manual_source_freshness_hours": {}, "manual_freshness_policy": {},
                          "tracks": ["development", "leadership", "analysis", "projects"], "required_stack": ["dotnet", "angular"]},
         "directory_enabled": False, "directory_url": "https://example.invalid/directory.json",
         "employer_registry_enabled": False, "techmap_enabled": False, "extra_boards": {}

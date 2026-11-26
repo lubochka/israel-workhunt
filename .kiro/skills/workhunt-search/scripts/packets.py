@@ -2,14 +2,15 @@
 import copy
 import hashlib
 from pathlib import Path
-from records import load, read_store, related_records, save, timestamp
+from records import application_evidence, load, read_store, related_records, save, timestamp
 from qualification import qualify
-from profile_config import private_root
+from profile_config import private_root, private_path, safe_output, cv_manifest_path
 
 
 def select_cv(workdir, language, role):
     root = private_root(workdir)
-    manifest = load(root / "cv-manifest.json", {})
+    profile = load(root / "profile.json", {})
+    manifest = load(cv_manifest_path(root, profile), {})
     candidates = [v for v in manifest.get("versions", []) if v.get("language") == language and role in v.get("roles", []) and v.get("selection_status") == "current"]
     if len(candidates) != 1:
         raise ValueError("No unambiguous current CV manifest entry for this language/role")
@@ -18,10 +19,13 @@ def select_cv(workdir, language, role):
     if not path.is_absolute():
         path = root / path
     cv["resolved_path"] = str(path)
-    cv["content_reviewed"] = False  # Hash/existence do not establish factual reconciliation.
     measured = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
     cv["current_sha256"] = measured
     cv["file_status"] = "unavailable" if measured is None else "hash_matches" if measured == cv.get("sha256") else "changed_since_manifest"
+    review = cv.get("content_review") or {}
+    cv["content_reviewed"] = bool(measured and measured == cv.get("sha256") and review.get("status") == "reviewed" and review.get("sha256") == measured and review.get("evidence"))
+    cv["ready_to_attach"] = cv["file_status"] == "hash_matches" and cv["content_reviewed"] and not cv.get("unresolved_facts")
+    cv["readiness_reason"] = "Reviewed file matches the selected version; external action still requires authorization" if cv["ready_to_attach"] else "Missing, changed, unreviewed or unresolved CV; a hash match alone is insufficient"
     return cv
 
 
@@ -75,8 +79,56 @@ def record_submission_event(workdir, identity, event):
     row = matches[0] if matches else copy.deepcopy(identity)
     if not matches:
         applied["records"].append(row)
+    previous = row.get("submission")
+    if not isinstance(previous, dict) and ("submission_status" in row or application_evidence(row)["latest"] is not None):
+        previous = {key: copy.deepcopy(value) for key, value in row.items()
+                    if key not in {"submission", "submission_events", "submission_snapshots"}}
+    if isinstance(previous, dict) and previous not in row.setdefault("submission_snapshots", []):
+        row["submission_snapshots"].append(copy.deepcopy(previous))
     row.setdefault("submission_events", []).append(copy.deepcopy(event))
-    row["submission"] = copy.deepcopy(event)
+    row["submission"] = application_evidence(row)["latest"]
     # Suppression is a separate user/history decision; do not silently change it.
     applied.pop("_history_available", None)
     save(private_root(workdir) / "data/applied_jobs.json", applied)
+
+
+if __name__ == "__main__":
+    import argparse
+    import datetime as dt
+    import json
+    from zoneinfo import ZoneInfo
+    from qualification import search_brief
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=["prepare", "record-event"])
+    parser.add_argument("workdir", type=Path)
+    parser.add_argument("--input", type=Path, required=True, help="Local evidence/authorization JSON; not a network request")
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--save-canonical", action="store_true", help="Persist a prepared packet inside the existing canonical opportunity")
+    args = parser.parse_args()
+    args.workdir = private_root(args.workdir)
+    request_path = private_path(args.workdir, args.input)
+    request = load(request_path)
+    if args.action == "record-event":
+        record_submission_event(args.workdir, request["identity"], request["event"])
+        print("Recorded supplied submission-history evidence locally; no external action performed")
+    else:
+        if not args.output:
+            parser.error("prepare requires --output for its local unsent artifact")
+        found, _ = read_store(args.workdir)
+        matches = related_records({"id": request["opportunity_id"]}, found["opportunities"])
+        if len(matches) != 1:
+            raise ValueError("Preparation requires one exact existing canonical opportunity")
+        profile = load(args.workdir / "profile.json")
+        if not profile or not profile.get("timezone"):
+            raise ValueError("Packet preparation requires an explicit time zone")
+        now = dt.datetime.now(ZoneInfo(profile["timezone"]))
+        packet = prepare_packet(args.workdir, matches[0], request.get("review", matches[0].get("review", {})),
+                                search_brief(profile, now, request.get("search_brief")), now, request["language"], request["role"],
+                                request.get("drafts"), request.get("observed_questions"), request.get("portfolio_evidence"), request.get("authorization"))
+        if args.output.resolve() in {(args.workdir / "data/jobs.json").resolve(), (args.workdir / "data/applied_jobs.json").resolve()}:
+            raise ValueError("Packet output cannot overwrite canonical records")
+        args.output = safe_output(args.workdir, args.output, extra_protected=[request_path])
+        save(args.output, packet)
+        if args.save_canonical:
+            save_packet(args.workdir, packet)
+        print(json.dumps({"output": str(args.output), "state": "prepared", "submission": "not_sent"}))

@@ -17,7 +17,7 @@ import urllib.request as ur
 import uuid
 from zoneinfo import ZoneInfo
 from profile_config import load_profile, private_root, validate_profile
-from records import read_store, history_decision, merge_discovery, save as save_canonical
+from records import IdentityLookup, read_store, history_decision, merge_discovery, save as save_canonical
 from qualification import search_brief, qualify
 from source_registry import board_from, load_boards, record_source_checks, TECHMAP_CATEGORIES
 from adapters import FetchResult, smart_normalize, smart_fetch, techmap_parse, recruitee_parse, deduplicate_discoveries
@@ -68,7 +68,10 @@ def get(url):
         raise ValueError("Expected a public HTTP(S) URL")
     req = ur.Request(url, headers={"User-Agent": "Workhunt/1.0 (public job-board reader)"})
     with ur.urlopen(req, timeout=30) as response:
-        return response.read(12_000_001).decode("utf-8")
+        payload = response.read(12_000_001)
+        if len(payload) > 12_000_000:
+            raise ValueError("Source response exceeds size limit; incomplete data must not be parsed")
+        return payload.decode("utf-8")
 
 
 def normalize(board, rows):
@@ -178,7 +181,7 @@ def classify(job, profile):
         text = re.sub(alias["pattern"], alias["replacement"], text, flags=re.I)
     tracks = []
     for key, rule in profile["tracks"].items():
-        if re.search(rule["title"], job["title"], re.I) and all(re.search(rx, text, re.I) for rx in rule.get("stack_all", [])):
+        if re.search(rule["title"], job["title"], re.I) and (job.get("description_status") == "discovery_only" or all(re.search(rx, text, re.I) for rx in rule.get("stack_all", []))):
             tracks.append(key)
     project_pattern = profile.get("project_employment_pattern")
     if "projects" in profile["tracks"] and "projects" not in tracks and project_pattern and re.search(project_pattern, str(job.get("employment_type", "")), re.I):
@@ -195,6 +198,7 @@ def classify(job, profile):
     if job.get("provider") == "techmap":
         local = False  # A discovery-only city is not country or eligibility evidence.
     return {**job, "tracks": tracks, "location_scope": "configured_geography" if local else "needs_location_check",
+            "track_match_kind": "provisional_title_only" if job.get("description_status") == "discovery_only" else "title_and_stack_hint",
             "education_excerpts": degree, "fit_status": "unreviewed"}
 
 
@@ -202,12 +206,15 @@ def classify(job, profile):
 def collect_boards(profile, workdir=None):
     validate_profile(profile)
     boards, failures = {}, []
+    disabled = set()
     if profile.get("employer_registry_enabled", False):
         try:
             if workdir is None:
                 raise ValueError("Explicit workspace needed to load employer registry")
-            for board in load_boards(workdir, profile):
+            for board in load_boards(workdir, profile, include_disabled=True):
                 boards[board["key"]] = board
+                if board.get("enabled") is False:
+                    disabled.add(board["key"])
         except Exception as exc:
             failures.append({"board_key": "employer-registry", "company": "Employer registry", "error": type(exc).__name__ + ": registry unavailable; not checked"})
     if profile.get("techmap_enabled", False):
@@ -234,14 +241,14 @@ def collect_boards(profile, workdir=None):
             boards[b["key"]] = b
         else:
             failures.append({"board_key": "manual:" + name, "company": name, "error": "Unsupported board; use manual source research"})
-    return sorted(boards.values(), key=lambda b: (b.get("priority", 100), b["key"])), failures
+    return sorted((b for b in boards.values() if b["key"] not in disabled), key=lambda b: (b.get("priority", 100), b["key"])), failures
 
 
 def history_changes(previous, current, successful):
-    ids = {j["id"] for j in current}
+    present = IdentityLookup(current)
     return [{"id": j["id"], "company": j["company"], "title": j["title"],
              "status": "not_listed_in_successful_scan" if j["board_key"] in successful else "not_checked"}
-            for j in previous if j["id"] not in ids]
+            for j in previous if not present.related(j)]
 
 
 def scan(workdir, network=False, fixtures=None, limit=None):
@@ -253,6 +260,7 @@ def scan(workdir, network=False, fixtures=None, limit=None):
     if fixture_mode:
         brief["run_type"] = "fixture"
     found, applied = ({"opportunities": [], "search_runs": []}, {"records": []}) if fixture_mode else read_store(workdir)
+    history_index = IdentityLookup(found.get("opportunities", []) + applied.get("records", []))
     runs = workdir / ("fixture-runs" if fixture_mode else "runs")
     runs.mkdir(exist_ok=True)
     previous_runs = sorted(p for p in runs.iterdir() if p.is_dir() and (p / "meta.json").exists())
@@ -302,8 +310,8 @@ def scan(workdir, network=False, fixtures=None, limit=None):
         j["checked_at"] = now.isoformat()
         j["first_seen_at"] = first_seen.get(j["id"]) or now.isoformat()
         j["new_to_tracker"] = j["id"] not in first_seen
-        j["history_check"] = history_decision(j, found, applied)
-        j["qualification"] = qualify(j, {}, brief, now, found, applied)
+        j["history_check"] = history_decision(j, found, applied, history_index)
+        j["qualification"] = qualify(j, {}, brief, now, found, applied, history_index)
     all_jobs.sort(key=lambda j: j["id"])
     hits = [j for j in all_jobs if set(j["tracks"]) & set(brief["tracks"])]
     run = runs / (now.strftime("%Y%m%dT%H%M%S%f") + "-" + uuid.uuid4().hex[:6])
@@ -326,7 +334,10 @@ def scan(workdir, network=False, fixtures=None, limit=None):
     if not fixture_mode:
         # Reload before merging so observations cannot overwrite intervening record edits.
         latest, _ = read_store(workdir)
-        save_canonical(workdir / "data/jobs.json", merge_discovery(latest, all_jobs, meta))
+        known = IdentityLookup(latest.get("opportunities", []))
+        hit_ids = {job["id"] for job in hits}
+        tracked_jobs = [job for job in all_jobs if job["id"] in hit_ids or known.related(job)]
+        save_canonical(workdir / "data/jobs.json", merge_discovery(latest, tracked_jobs, meta))
         record_source_checks(workdir, profile, checks, now.isoformat())
     return run
 

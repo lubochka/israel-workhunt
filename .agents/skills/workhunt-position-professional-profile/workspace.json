@@ -1,0 +1,5 @@
+{
+  "workspace": null,
+  "private_root": ".workhunt",
+  "resolution": "explicit > cwd ancestors > private local config"
+}

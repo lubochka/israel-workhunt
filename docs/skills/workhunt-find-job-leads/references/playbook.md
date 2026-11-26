@@ -6,7 +6,9 @@ Load the private profile and evidence ledger in `.workhunt/`. Configure them fro
 
 ## Search and source selection
 
-Read both canonical history files before searching. Fix a 24-hour ISO timestamp window in the configured time zone. Keep the user's requested minimum and actual count separate; a minimum is not a cap. Select sources from all 23 records in `sources/opportunity-sources.json` using confirmed language, geography, acquisition route and work preferences. The catalog contains dated reference evidence, not enabled integrations or current availability guarantees. Public listing collectors require explicit opt-in. Use an isolated hidden browser or public page tools, never personal browser state.
+Read both canonical history files before searching. Fix an ISO timestamp window in the configured time zone using the manual policy below, or exactly 24 hours for automated qualification. Keep the user's requested minimum and actual count separate; a minimum is not a cap. Select sources from all 23 records in `sources/opportunity-sources.json` using confirmed language, geography, acquisition route and work preferences. The catalog contains dated reference evidence, not enabled integrations or current availability guarantees. Public listing collectors require explicit opt-in. Use an isolated hidden browser or public page tools, never personal browser state.
+
+For manual research, read the private `search_brief.manual_source_freshness_hours` and `manual_freshness_policy`. Their shared defaults are empty. Use one fixed run anchor and subtract elapsed durations in the configured time zone. A source-specific extension needs explicit user policy and evidence that the exact opportunity belongs to that source group; unsupported membership or a cross-post alone cannot obtain a wider window. Use the standard 24-hour window when no supported exception applies. Preserve historical bounds and requested minimums without retroactive changes. Automated collector qualification and notifications still require exactly 24 hours; manual policy does not change that code or authorize execution.
 
 ## Fit and eligibility
 
@@ -16,7 +18,7 @@ A mandatory degree must be supported by an actually completed qualifying credent
 
 ## Dates, routes and identity
 
-Record original publication, refresh/repost, feed availability, first discovery, deadline and verification separately. A genuine evidenced refresh/repost can satisfy the fixed 24-hour window even if original publication is older. Relative/date-only evidence qualifies only when its entire supported interval is inside the window. A crawl timestamp or alert receipt does not establish freshness.
+Record original publication, refresh/repost, feed availability, first discovery, deadline and verification separately. A genuine evidenced refresh/repost can satisfy the applicable fixed window even if original publication is older. Relative/date-only evidence qualifies only when its entire supported interval is inside the window. A crawl timestamp or alert receipt does not establish freshness.
 
 Open the exact application/proposal route and match employer plus title/ID. Record check time, evidence, route URL/navigation, message-field availability and limits. A current vacancy-specific acceptance statement behind login may qualify with `Login required; not verified beyond this point`; a generic login page, email address or unrelated form does not. Stop before entering personal information unless separately authorized.
 

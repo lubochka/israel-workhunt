@@ -5,7 +5,6 @@ import json
 import os
 from pathlib import Path
 import re
-import subprocess
 import urllib.parse
 
 PROJECT = Path(__file__).resolve().parent.parent
@@ -31,18 +30,20 @@ def canonical_sources(project):
     return values
 
 
-def package(project=PROJECT, workspace=None):
+def package(project=PROJECT, workspace=None, overlays=None):
     project = Path(project).resolve()
     workspace = Path(workspace).resolve() if workspace else None
     sources = canonical_sources(project)
+    overlays = overlays or {}
     planned, originals = {}, {}
     for name, source in sources.items():
-        for file in source.rglob("*"):
-            if not file.is_file() or "__pycache__" in file.parts or file.suffix == ".pyc" or file.name == "workspace.local.json":
+        candidates = set(source.rglob("*")) | {p for p in overlays if p.is_relative_to(source)}
+        for file in sorted(candidates):
+            if not (file.is_file() or file in overlays) or "__pycache__" in file.parts or file.suffix == ".pyc" or file.name == "workspace.local.json":
                 continue
             key = name + "/" + file.relative_to(source).as_posix()
             originals[key] = file
-            data = file.read_bytes()
+            data = overlays[file] if file in overlays else file.read_bytes()
             if file.suffix == ".md":
                 text = data.decode("utf-8-sig")
                 def rewrite(match):
@@ -92,15 +93,6 @@ def validate_references(files):
                 raise ValueError("Missing packaged reference: " + key + " -> " + target)
 
 
-def tracked_version(path, project):
-    try:
-        relative = path.resolve().relative_to(project.resolve()).as_posix()
-    except ValueError:
-        return None
-    result = subprocess.run(["git", "show", "HEAD:" + relative], cwd=project, capture_output=True)
-    return result.stdout if result.returncode == 0 else None
-
-
 def plan_install(root, files, originals, project, check=False, adopt_project=False):
     root = Path(root).resolve()
     manifest_path = root / ".workhunt-install.json"
@@ -114,14 +106,17 @@ def plan_install(root, files, originals, project, check=False, adopt_project=Fal
                 raise ValueError("Missing installed file: " + str(destination))
             continue
         actual = destination.read_bytes()
+        recorded_hash = manifest.get("files", {}).get(key)
+        owned = recorded_hash is not None and digest_bytes(actual) == recorded_hash
+        if recorded_hash is not None and not owned:
+            raise ValueError("Existing locally modified file: " + str(destination))
         if actual == data:
             continue
         if check:
             raise ValueError("Installed content differs: " + str(destination))
-        owned = digest_bytes(actual) == manifest.get("files", {}).get(key)
-        original_same = key in originals and actual == originals[key].read_bytes()
-        tracked_same = adopt_project and actual == tracked_version(destination, project)
-        if not (owned or original_same or tracked_same):
+        original_same = key in originals and originals[key].is_file() and actual == originals[key].read_bytes()
+        # Git tracking never grants ownership of a locally modified installation.
+        if not (owned or original_same):
             raise ValueError("Existing unowned or locally modified file: " + str(destination))
     return root, manifest_path
 

@@ -10,10 +10,10 @@ import sys
 
 PACKAGE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PACKAGE.parent / "workhunt-search/scripts"))
-from profile_config import private_root, private_path, validate_profile
+from profile_config import private_root, private_path, cv_manifest_path, validate_profile
 
 FACT_FIELDS = {"name", "headline", "identity", "capabilities", "experience", "education", "languages"}
-SETTING_FIELDS = {"tracks", "eligible_countries", "location_pattern", "timezone", "language", "limited_experience", "degree_policy", "preferences", "search_brief", "directory_enabled", "directory_url", "employer_registry_enabled", "employer_registry", "employer_overrides", "source_health", "techmap_enabled", "techmap_categories", "extra_boards", "manual_sources", "matching_aliases", "project_employment_pattern"}
+SETTING_FIELDS = {"tracks", "eligible_countries", "location_pattern", "timezone", "language", "limited_experience", "degree_policy", "preferences", "search_brief", "directory_enabled", "directory_url", "employer_registry_enabled", "employer_registry", "employer_overrides", "source_health_file", "techmap_enabled", "techmap_categories", "extra_boards", "manual_sources", "matching_aliases", "project_employment_pattern"}
 OUTPUTS = {"profile.json": "profile.template.json", "profile-evidence.json": "profile-evidence.template.json", "professional-summary.md": "professional-summary.template.md", "cv-manifest.json": "cv-manifest.template.json"}
 
 
@@ -185,6 +185,10 @@ def cv_version(path, language=None, roles=None, selection_evidence=None, content
         raise ValueError("Explicitly selected CV file is missing")
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     at = dt.datetime.now(dt.timezone.utc).isoformat()
+    if language is not None and (not isinstance(language, str) or not language.strip()):
+        raise ValueError("CV language must be supported text or null")
+    if roles is not None and (not isinstance(roles, list) or any(not isinstance(role, str) or not role.strip() for role in roles)):
+        raise ValueError("CV roles must be an explicit list of supported mappings")
     if (language or roles) and not selection_evidence:
         raise ValueError("CV language/role mapping needs supported selection evidence")
     if content_review and not (content_review.get("status") == "reviewed" and content_review.get("evidence") and content_review.get("sha256") == digest):
@@ -205,7 +209,7 @@ def register_cv(workspace, path, **mapping):
     """Append private versions without retiring another version by guesswork."""
     root = private_root(workspace)
     profile = json.loads((root / "profile.json").read_text(encoding="utf-8"))
-    manifest_path = private_path(root, profile.get("cv_manifest", "cv-manifest.json"))
+    manifest_path = cv_manifest_path(root, profile)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {"schema_version": 1, "versions": [], "historical_references": []}
     version = cv_version(path, **mapping)
     manifest.setdefault("versions", []).append(version)
@@ -225,7 +229,7 @@ def populate(workspace, ledger, selected_cv=None, cv_mapping=None, shared=None):
         if (root / name).exists() and (root / name).read_bytes() != (templates / template).read_bytes():
             raise ValueError("Existing private profile output requires a reviewed update: " + name)
     summary = render_summary(profile, evidence, shared)
-    manifest_path = private_path(root, profile["cv_manifest"])
+    manifest_path = cv_manifest_path(root, profile)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else json.loads((templates / "cv-manifest.template.json").read_text(encoding="utf-8"))
     if selected_cv:
         manifest["versions"].append(cv_version(selected_cv, **(cv_mapping or {})))

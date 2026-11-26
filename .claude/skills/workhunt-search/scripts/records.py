@@ -98,9 +98,45 @@ def related_records(job, records):
             remaining.remove(row)
 
 
-def history_decision(job, found, applied):
-    rows = related_records(job, found.get("opportunities", []) + applied.get("records", []))
-    suppressed, reported, possible, submitted = [], [], [], []
+def identity_groups(rows):
+    """Connected identity components; compute each record's keys once."""
+    rows = list(rows)
+    parents = list(range(len(rows)))
+    owners = {}
+    def root(index):
+        while parents[index] != index:
+            parents[index] = parents[parents[index]]
+            index = parents[index]
+        return index
+    for index, row in enumerate(rows):
+        for key in identity_keys(row):
+            if key in owners:
+                parents[root(index)] = root(owners[key])
+            else:
+                owners[key] = index
+    grouped = {}
+    for index, row in enumerate(rows):
+        grouped.setdefault(root(index), []).append(row)
+    return list(grouped.values())
+
+
+class IdentityLookup:
+    def __init__(self, rows):
+        self.groups = identity_groups(rows)
+        self.keys = {}
+        for index, group in enumerate(self.groups):
+            for row in group:
+                for key in identity_keys(row):
+                    self.keys[key] = index
+
+    def related(self, row):
+        indexes = {self.keys[key] for key in identity_keys(row) if key in self.keys}
+        return [item for index in sorted(indexes) for item in self.groups[index]]
+
+
+def history_facts(rows, now=None):
+    """Orthogonal saved facts; recommendation precedence must not erase evidence."""
+    suppressed, reported, possible, submitted, unresolved = [], [], [], [], []
     for row in rows:
         history = row.get("history") if isinstance(row.get("history"), dict) else {}
         if row.get("suppress_from_new_results") is True or history.get("suppress_from_new_results") is True or history.get("suppress_repeat_recommendation") is True or row.get("status") == "suppressed":
@@ -109,10 +145,19 @@ def history_decision(job, found, applied):
             reported.append(row.get("id"))
         if row.get("possible_duplicate_ids") or history.get("decision") == "possible_duplicate" or row.get("status") == "possible_duplicate":
             possible.append(row.get("id"))
-        if application_state(row) in {"submitted_observed", "receipt_observed", "user_reported_submitted", "response_received", "platform_verified_historical_application"}:
+        if application_evidence(row, now)["ever_applied"]:
             submitted.append(row.get("id"))
-    state = "suppressed" if suppressed else "already_applied" if submitted else "previously_reported" if reported else "possible_duplicate" if possible else "new"
-    return {"state": state, "matched_ids": list(dict.fromkeys(r.get("id") for r in rows)), "newness_qualified": state == "new"}
+        if history.get("decision") in {"unresolved", "needs_clarification"} or history.get("newness_qualified") is False:
+            unresolved.append(row.get("id"))
+    return {"suppressed": bool(suppressed), "already_applied": bool(submitted), "previously_reported": bool(reported),
+            "possible_duplicate": bool(possible), "unresolved": bool(unresolved)}
+
+
+def history_decision(job, found, applied, index=None):
+    rows = index.related(job) if index is not None else related_records(job, found.get("opportunities", []) + applied.get("records", []))
+    facts = history_facts(rows)
+    state = next((key for key in ("suppressed", "already_applied", "previously_reported", "possible_duplicate", "unresolved") if facts[key]), "new")
+    return {"state": state, "facts": facts, "matched_ids": list(dict.fromkeys(r.get("id") for r in rows)), "newness_qualified": state == "new"}
 
 
 def display_job(row):
@@ -132,17 +177,28 @@ def merge_discovery(found, jobs, run):
     result = copy.deepcopy(found)
     result.pop("_history_available", None)
     result.setdefault("opportunities", [])
-    for job in jobs:
-        matches = related_records(job, result["opportunities"])
-        if matches:
-            row = matches[0]
-            row.setdefault("observations", []).append(copy.deepcopy(job))
-            row.setdefault("source_aliases", [])
-            for alias in (job.get("url"), {"id": job["id"]}):
-                if alias and alias not in row["source_aliases"]:
-                    row["source_aliases"].append(alias)
+    existing_ids = {id(row) for row in result["opportunities"]}
+    for group in identity_groups(result["opportunities"] + list(jobs)):
+        existing = [row for row in group if id(row) in existing_ids]
+        incoming = [row for row in group if id(row) not in existing_ids]
+        if not incoming:
+            continue
+        if existing:
+            row = existing[0]
         else:
-            result["opportunities"].append(copy.deepcopy(job))
+            row = copy.deepcopy(incoming.pop(0))
+            result["opportunities"].append(row)
+        # Persist the whole explicit identity graph, including bridges between
+        # pre-existing records. Assessments remain on their original records.
+        for member in group:
+            alias = {key: copy.deepcopy(member[key]) for key in (
+                "id", "canonical_opportunity_id", "canonical_recommendation_id", "company", "employer_or_client",
+                "job_id", "source_job_id", "employer_requisition_id", "board_key", "url", "source_url",
+                "canonical_project_url", "source_aliases", "aliases", "identity_aliases", "related_source_ids") if key in member}
+            if member is not row and alias and alias not in row.setdefault("source_aliases", []):
+                row["source_aliases"].append(alias)
+        for job in incoming:
+            row.setdefault("observations", []).append(copy.deepcopy(job))
     result.setdefault("search_runs", []).append(copy.deepcopy(run))
     result["updated_at"] = run["checked_at"]
     return result
@@ -156,17 +212,53 @@ def timestamp(value):
         return None
 
 
-def application_state(record, now=None):
+APPLIED_STATES = {"submitted_observed", "receipt_observed", "user_reported_submitted", "response_received", "platform_verified_historical_application"}
+SUBMISSION_STATES = APPLIED_STATES | {"not_recorded", "prepared", "uploaded", "historical_claim_only"}
+
+
+def _submission_state(record, now, strict=False):
     if not record:
         return "not_recorded"
-    now = now or dt.datetime.now(dt.timezone.utc)
-    record = record.get("submission", record)
     status = record.get("submission_status", record.get("status", "unknown"))
     status = {"user_reported_applied": "user_reported_submitted", "not_applied": "not_recorded"}.get(status, status)
-    allowed = {"not_recorded", "prepared", "uploaded", "submitted_observed", "receipt_observed", "user_reported_submitted", "historical_claim_only", "response_received", "platform_verified_historical_application"}
-    if status not in allowed:
+    if status not in SUBMISSION_STATES:
         return "unknown"
     at = timestamp(record.get("at") or record.get("submitted_at"))
-    if status in {"submitted_observed", "receipt_observed", "response_received"} and (not record.get("evidence") or not at or at > now):
+    if (at and at > now) or (strict or status in {"submitted_observed", "receipt_observed", "response_received"}) and (not record.get("evidence") or not at):
         return "unverified_submission_claim"
     return status
+
+
+def application_evidence(record, now=None):
+    """Latest meaningful event and ever-applied evidence are independent facts.
+
+    Legacy snapshots keep their attribution; logged events require evidence and
+    an aware, non-future time. No subsequent upload retracts a submission.
+    """
+    now = now or dt.datetime.now(dt.timezone.utc)
+    if not isinstance(record, dict) or not record:
+        return {"states": [], "ever_applied": False, "latest": None, "state": "not_recorded"}
+    candidates = []
+    if isinstance(record.get("submission"), dict):
+        candidates.append((record["submission"], False))
+    flat_application_status = record.get("status") in SUBMISSION_STATES | {"user_reported_applied", "not_applied"}
+    if "submission_status" in record or flat_application_status or "submission" not in record and not record.get("submission_events") and not record.get("submission_snapshots"):
+        candidates.append((record, False))
+    candidates += [(item, False) for item in record.get("submission_snapshots", []) if isinstance(item, dict)]
+    candidates += [(item, True) for item in record.get("submission_events", []) if isinstance(item, dict)]
+    states, meaningful, rejected = set(), [], []
+    for item, strict in candidates:
+        state = _submission_state(item, now, strict)
+        states.add(state)
+        if state in {"unknown", "unverified_submission_claim", "not_recorded"}:
+            rejected.append(state)
+        else:
+            meaningful.append((timestamp(item.get("at") or item.get("submitted_at")) or dt.datetime.min.replace(tzinfo=dt.timezone.utc), item, state))
+    latest = max(meaningful, key=lambda item: item[0]) if meaningful else None
+    return {"states": sorted(states), "ever_applied": bool(states & APPLIED_STATES),
+            "latest": copy.deepcopy(latest[1]) if latest else None,
+            "state": latest[2] if latest else "unverified_submission_claim" if "unverified_submission_claim" in rejected else "unknown" if "unknown" in rejected else "not_recorded"}
+
+
+def application_state(record, now=None):
+    return application_evidence(record, now)["state"]

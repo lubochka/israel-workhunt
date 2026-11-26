@@ -21,6 +21,51 @@ def private_path(workspace, relative):
     return target
 
 
+def shared_root(workspace):
+    """Resolve public assets without requiring private profile configuration."""
+    from workspace import resolve_workspace
+    root = Path(workspace).resolve()
+    try:
+        return resolve_workspace(cwd=root, config=private_root(root) / "workspace.local.json")
+    except ValueError:
+        # Runtime source location is a portable fallback in an unpacked release.
+        return resolve_workspace(cwd=Path(__file__).resolve().parent)
+
+
+def safe_output(workspace, path, extra_protected=()):
+    """Preflight a private artifact destination without overwriting canonical inputs."""
+    root = private_root(workspace)
+    target = private_path(root, path)
+    protected = {root / name for name in ("profile.json", "profile-evidence.json", "professional-summary.md", "cv-manifest.json", "workspace.local.json", "data/jobs.json", "data/applied_jobs.json", "reviews.json", "applications.json", "manual-opportunities.json", "sources/employer-boards.json", "sources/employer-overrides.json", "sources/source-health.json")}
+    profile_file = root / "profile.json"
+    if profile_file.is_file():
+        profile = json.loads(profile_file.read_text(encoding="utf-8-sig"))
+        for field in ("cv_manifest", "employer_registry", "employer_overrides", "source_health_file", "source_health"):
+            if profile.get(field):
+                protected.add(private_path(root, profile[field]))
+    protected.update(Path(p).resolve() for p in extra_protected)
+    if target in {p.resolve() for p in protected}:
+        raise ValueError("Artifact output cannot overwrite canonical records or configuration")
+    return target
+
+
+def cv_manifest_path(workspace, profile):
+    """Validate a custom private manifest without allowing collisions with other inputs."""
+    root = private_root(workspace)
+    target = private_path(root, profile.get("cv_manifest", "cv-manifest.json"))
+    forbidden = {root / name for name in ("profile.json", "profile-evidence.json", "professional-summary.md", "workspace.local.json", "data/jobs.json", "data/applied_jobs.json", "reviews.json", "applications.json", "manual-opportunities.json", "sources/employer-boards.json", "sources/employer-overrides.json", "sources/source-health.json")}
+    for field in ("employer_registry", "employer_overrides", "source_health_file", "source_health"):
+        if profile.get(field):
+            forbidden.add(private_path(root, profile[field]))
+    if target in {p.resolve() for p in forbidden}:
+        raise ValueError("CV manifest cannot overwrite canonical/configuration or legacy inputs")
+    if target.exists():
+        data = json.loads(target.read_text(encoding="utf-8"))
+        if not isinstance(data, dict) or not isinstance(data.get("versions"), list) or not isinstance(data.get("historical_references", []), list) or any(not isinstance(row, dict) for row in data["versions"]):
+            raise ValueError("Existing CV manifest has an invalid schema")
+    return target
+
+
 def restricted_pattern(value, field):
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{SETUP}: {field} must be a nonempty restrictive pattern")
@@ -77,7 +122,7 @@ def validate_profile(profile):
             raise ValueError(f"{SETUP}: {name} must be a boolean")
     if profile.get("directory_enabled") and not profile.get("directory_url"):
         raise ValueError(f"{SETUP}: an enabled directory needs an explicit URL")
-    for name in ("employer_registry", "employer_overrides", "source_health"):
+    for name in ("employer_registry", "employer_overrides", "source_health_file", "source_health", "cv_manifest"):
         if name in profile:
             value = profile[name]
             if not isinstance(value, str) or not value or Path(value).is_absolute() or ".." in Path(value).parts:

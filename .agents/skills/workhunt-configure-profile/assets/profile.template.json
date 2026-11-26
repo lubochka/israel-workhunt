@@ -30,19 +30,22 @@
     "requested_minimum": null,
     "result_cap": null,
     "tracks": [],
-    "required_stack": []
+    "required_stack": [],
+    "manual_source_freshness_hours": {},
+    "manual_freshness_policy": {}
   },
   "directory_enabled": false,
   "directory_url": "",
   "employer_registry_enabled": false,
   "employer_registry": "sources/employer-boards.json",
   "employer_overrides": "sources/employer-overrides.json",
-  "source_health": "sources/source-health.json",
   "techmap_enabled": false,
   "techmap_categories": [],
   "extra_boards": {},
   "manual_sources": [],
   "matching_aliases": [],
   "project_employment_pattern": "",
-  "evidence_references": []
+  "evidence_references": [],
+  "source_health_file": "sources/source-health.json",
+  "cv_manifest": "cv-manifest.json"
 }

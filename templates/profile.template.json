@@ -30,7 +30,9 @@
     "requested_minimum": null,
     "result_cap": null,
     "tracks": [],
-    "required_stack": []
+    "required_stack": [],
+    "manual_source_freshness_hours": {},
+    "manual_freshness_policy": {}
   },
   "directory_enabled": false,
   "directory_url": "",

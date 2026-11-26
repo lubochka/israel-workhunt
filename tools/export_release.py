@@ -5,8 +5,8 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parent.parent
-FORBIDDEN_PARTS = {".git", ".workhunt", "__pycache__", ".venv", "tmp", "output", "validation", "data", "runs", "fixture-runs"}
-FORBIDDEN_NAMES = {"profile.json", "profile-evidence.json", "professional-summary.md", "cv-manifest.json", "applications.json", "reviews.json", "manual-opportunities.json", ".env"}
+FORBIDDEN_PARTS = {".git", ".workhunt", "__pycache__", ".venv", "tmp", "output", "validation", "data", "runs", "fixture-runs", "outcomes", "reports", "logs"}
+FORBIDDEN_NAMES = {"profile.json", "profile-evidence.json", "professional-summary.md", "cv-manifest.json", "applications.json", "reviews.json", "manual-opportunities.json", ".env", "workspace.local.json", "source-health.json", "employer-overrides.json"}
 FORBIDDEN_SUFFIXES = {".pdf", ".docx", ".doc", ".pem", ".key", ".pyc", ".pyo"}
 
 
@@ -17,7 +17,7 @@ def inventory(root=ROOT):
         raise ValueError("Stage the reviewed release inventory before export")
     for rel in paths:
         path = root / rel
-        if rel.is_absolute() or ".." in rel.parts or set(rel.parts) & FORBIDDEN_PARTS or rel.name in FORBIDDEN_NAMES or rel.suffix.lower() in FORBIDDEN_SUFFIXES or rel.name.startswith(".env."):
+        if rel.is_absolute() or ".." in rel.parts or set(rel.parts) & FORBIDDEN_PARTS or rel.name in FORBIDDEN_NAMES or rel.suffix.lower() in FORBIDDEN_SUFFIXES or rel.name.startswith((".env.", "packet-evidence", "packet-authorization", "submission-event")) or rel.suffix.lower() == ".log":
             raise ValueError("Private or unsupported export entry: " + str(rel))
         if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(root.resolve()):
             raise ValueError("Export accepts ordinary files inside the release root only: " + str(rel))

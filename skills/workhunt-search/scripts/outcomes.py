@@ -6,8 +6,9 @@ import json
 from pathlib import Path
 import urllib.parse as up
 from zoneinfo import ZoneInfo
+from qualification import route_evidence_recorded
 from profile_config import private_root, safe_output
-from records import application_state, history_decision, identity_groups, load, timestamp
+from records import application_evidence, application_state, history_decision, identity_groups, load, timestamp
 
 
 def source_labels(row):
@@ -62,13 +63,15 @@ def build_report(found, applied, now=None):
             metrics["full_description_recorded"] |= row.get("full_description_read") is True or review.get("full_description_read") is True
             route = review.get("route") or row.get("route") or row.get("application_route") or {}
             if isinstance(route, dict):
-                metrics["route_evidence_recorded"] |= (route.get("status") or route.get("decision")) in {"form_observed", "exact_application_form_verified", "qualified_login", "proposal_observed"} and bool(route.get("evidence"))
+                metrics["route_evidence_recorded"] |= route_evidence_recorded(route)
             history = history_decision(row, {"opportunities": discoveries}, {"records": [r for r in group if id(r) not in found_object_ids]})
-            metrics["suppressed"] |= history["state"] == "suppressed"
-            metrics["previously_reported"] |= history["state"] == "previously_reported" or bool((row.get("history") or {}).get("reported_at")) if isinstance(row.get("history", {}), dict) else False
-            metrics["history_unresolved"] |= history["state"] in {"unresolved", "possible_duplicate"}
-            is_application_record = id(row) not in found_object_ids or "submission" in row or "submission_status" in row
-            candidates = ([row] if is_application_record else []) + (row.get("submission_events") or [])
+            metrics["suppressed"] |= history["facts"]["suppressed"]
+            metrics["previously_reported"] |= history["facts"]["previously_reported"]
+            metrics["history_unresolved"] |= history["facts"]["unresolved"] or history["facts"]["possible_duplicate"]
+            is_application_record = id(row) not in found_object_ids or any(key in row for key in ("submission", "submission_status", "submission_events", "submission_snapshots"))
+            if is_application_record:
+                states.update(state for state in application_evidence(row, now)["states"] if state != "not_recorded")
+            candidates = []
             packet = row.get("application_packet")
             if isinstance(packet, dict):
                 if packet.get("preparation_state") == "prepared":
@@ -97,6 +100,7 @@ def build_report(found, applied, now=None):
     runs = [{key: run[key] for key in ("id", "checked_at", "window_start", "window_end", "requested_minimum", "qualified_count", "actual_qualified_count", "source_checks", "coverage_limited", "limitations") if key in run} for run in found.get("search_runs", [])]
     return {"schema_version": 1, "generated_at": now.isoformat(), "evidence_scope": "Saved historical canonical records only; no fresh job/form/fit checks",
             "unique_discovered_identities": sum(bool([r for r in group if id(r) in found_object_ids]) for group in groups),
+            "unique_previously_reported_identities": sum(item["metrics"]["previously_reported"] for item in identity_evidence),
             "by_source": dict(sorted(by_source.items())), "identities": identity_evidence, "recorded_runs": runs,
             "limits": ["Sources may share an identity; per-source columns cannot be summed as global totals.",
                        "Saved qualified/description/route decisions are attributed records, not new verification.",
@@ -106,10 +110,10 @@ def build_report(found, applied, now=None):
 
 def markdown(report):
     rows = ["# Workhunt source outcomes", "", report["evidence_scope"] + ".", "",
-            f"Generated: {report['generated_at']}. Distinct recorded discovery identities: {report['unique_discovered_identities']}.", "",
-            "| Source | Discoveries | Saved qualified new | Full description | Route evidence | Duplicates | Suppressed | Prepared | Observed submitted | User reported | Receipt | Response |",
-            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
-    keys = ["discoveries", "saved_qualified_new", "full_description_recorded", "route_evidence_recorded", "duplicate_identities", "suppressed", "prepared", "submitted_observed", "user_reported_submitted", "receipt_observed", "response_received"]
+            f"Generated: {report['generated_at']}. Distinct recorded discovery identities: {report['unique_discovered_identities']}. Ever reported: {report['unique_previously_reported_identities']} distinct identities.", "",
+            "| Source | Discoveries | Saved qualified new | Full description | Route evidence | Duplicates | Suppressed | Ever reported | Prepared | Observed submitted | User reported | Receipt | Response |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    keys = ["discoveries", "saved_qualified_new", "full_description_recorded", "route_evidence_recorded", "duplicate_identities", "suppressed", "previously_reported", "prepared", "submitted_observed", "user_reported_submitted", "receipt_observed", "response_received"]
     for source, counts in report["by_source"].items():
         rows.append("| " + source.replace("|", "\\|") + " | " + " | ".join(str(counts[k]) for k in keys) + " |")
     rows += ["", "Upload, historical platform observation, unresolved history and unknown submission counts are retained separately in the companion JSON. Recorded timestamps and original run outcomes are retained there; no unsupported conversion or response-rate estimate is calculated.", ""]
