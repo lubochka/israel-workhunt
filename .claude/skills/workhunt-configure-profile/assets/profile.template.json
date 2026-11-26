@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "configured": false,
+  "name": "",
+  "headline": "",
+  "identity": {},
+  "capabilities": [],
+  "experience": [],
+  "education": [],
+  "languages": [],
+  "timezone": null,
+  "language": null,
+  "eligible_countries": [],
+  "location_pattern": "",
+  "tracks": {},
+  "limited_experience": {},
+  "degree_policy": {
+    "accepted_qualifications": [],
+    "accept_experience_alternative": null
+  },
+  "preferences": {
+    "work_modes": [],
+    "relocation": null,
+    "availability": null,
+    "rate": null,
+    "currency": null
+  },
+  "search_brief": {
+    "run_type": "manual",
+    "requested_minimum": null,
+    "result_cap": null,
+    "tracks": [],
+    "required_stack": []
+  },
+  "directory_enabled": false,
+  "directory_url": "",
+  "employer_registry_enabled": false,
+  "employer_registry": "sources/employer-boards.json",
+  "employer_overrides": "sources/employer-overrides.json",
+  "source_health": "sources/source-health.json",
+  "techmap_enabled": false,
+  "techmap_categories": [],
+  "extra_boards": {},
+  "manual_sources": [],
+  "matching_aliases": [],
+  "project_employment_pattern": "",
+  "evidence_references": []
+}

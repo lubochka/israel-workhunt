@@ -1,0 +1,4 @@
+interface:
+  display_name: "Find employment leads"
+  short_description: "Find candidate employment leads for configured roles and capa..."
+  default_prompt: "Use $workhunt-find-job-leads for the requested task using my private profile and supported evidence."

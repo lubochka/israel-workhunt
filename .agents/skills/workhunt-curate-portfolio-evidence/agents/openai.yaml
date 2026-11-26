@@ -1,0 +1,4 @@
+interface:
+  display_name: "Curate portfolio evidence"
+  short_description: "Select relevant work samples with contribution attribution, e..."
+  default_prompt: "Use $workhunt-curate-portfolio-evidence for the requested task using my private profile and supported evidence."

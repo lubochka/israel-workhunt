@@ -1,0 +1,825 @@
+{
+  "schema_version": 1,
+  "catalog_type": "discovery_source_reference",
+  "checked_on": "2026-11-25",
+  "purpose": "Discovery references selected by each private profile; no sources enabled by default.",
+  "implementation_status": "reference_catalog_only",
+  "collector_added": false,
+  "scheduled_monitoring_activated": false,
+  "credential_access_tested": false,
+  "sources": [
+    {
+      "id": "freelancer",
+      "name": "Freelancer.com",
+      "website": "https://www.freelancer.com/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "rest_api",
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "https://www.freelancer.com/api/projects/0.1/projects/active/"
+        }
+      ],
+      "authentication": "Public basic search succeeded without credentials; the official SDK documents OAuth 2.0 for general API access.",
+      "evidence": {
+        "status": "public_read_observed",
+        "method": "parent_and_worker_http_get",
+        "date": "2026-11-25",
+        "http_status": 200,
+        "observation": "JSON status success; one returned project and total_count 16. The worker also observed full description, skills and budget fields on an expanded request; owner_id was null and users empty."
+      },
+      "freshness": "Keep time_submitted and time_updated separate; ordering by time_updated does not prove a newly published project.",
+      "polling": {
+        "provider_min_interval_seconds": null,
+        "note": "No universal quota verified. Respect current response limits and back off on HTTP 429; any future schedule must be configured separately."
+      },
+      "storage": "API terms limit storage and require cached data to be refreshed at least every 24 hours; do not assume an unrestricted archive.",
+      "limitations": [
+        "Anonymous employer identity, reputation and country details were not established.",
+        "API reachability does not verify proposal eligibility or current account access."
+      ],
+      "references": [
+        "https://github.com/freelancer/freelancer-sdk-python",
+        "https://github.com/freelancer/freelancer-sdk-python/blob/master/examples/search_projects.py",
+        "https://www.freelancer.com/about/apiterms"
+      ],
+      "guide": "FREELANCE_PROJECT_SOURCES.md"
+    },
+    {
+      "id": "freelancehunt",
+      "name": "Freelancehunt",
+      "website": "https://freelancehunt.com/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "rest_api",
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "https://api.freelancehunt.com/v2/projects"
+        },
+        {
+          "method": "GET",
+          "url": "https://api.freelancehunt.com/v2/skills"
+        }
+      ],
+      "authentication": "Account-generated Bearer token from Apps and API settings.",
+      "evidence": {
+        "status": "official_documentation_only",
+        "method": "official_api_documentation",
+        "date": "2026-11-25",
+        "observation": "The docs distinguish the open-project list /v2/projects from the employer's own /v2/my/projects. No authenticated call was made."
+      },
+      "filters": {
+        "documented": [
+          "filter[skill_id]",
+          "filter[only_my_skills]",
+          "filter[employer_id]",
+          "filter[only_for_plus]",
+          "page[number]"
+        ],
+        "validation": "Documented behavior only. Resolve actual skill IDs and validate filtering with the authorized token; use local text matching."
+      },
+      "polling": {
+        "provider_min_interval_seconds": null,
+        "note": "No current guaranteed numeric quota established; do not treat an old example as a quota."
+      },
+      "limitations": [
+        "Some Plus-only details are restricted.",
+        "No public-project webhook or incremental changed-since filter was confirmed.",
+        "Country and payment eligibility were not checked."
+      ],
+      "references": [
+        "https://apidocs.freelancehunt.com/"
+      ],
+      "guide": "FREELANCE_PROJECT_SOURCES.md"
+    },
+    {
+      "id": "upwork",
+      "name": "Upwork",
+      "website": "https://www.upwork.com/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "graphql_api",
+      "endpoints": [
+        {
+          "method": "POST",
+          "url": "https://api.upwork.com/graphql",
+          "operation": "marketplaceJobPostingsSearch",
+          "required_scope": "Read marketplace Job Postings"
+        }
+      ],
+      "authentication": "Approved application credentials, OAuth 2.0 and the granted marketplace-read scope.",
+      "evidence": {
+        "status": "official_documentation_only",
+        "method": "official_support_and_indexed_graphql_documentation",
+        "date": "2026-11-25",
+        "observation": "Marketplace search and RECENCY sorting are documented. No approved-account request was made."
+      },
+      "eligibility": {
+        "minimum_lifetime_earnings_or_spend_usd": 25000,
+        "minimum_freelancer_or_agency_jss_percent": 90,
+        "other_requirements": [
+          "Verified identity",
+          "Active verified payment method",
+          "Valid profile details",
+          "Account in good standing",
+          "Approved description of the intended use"
+        ],
+        "usage": "Personal/internal only; commercial use is not supported by the current application guidance."
+      },
+      "polling": {
+        "provider_min_interval_seconds": null,
+        "daily_request_limit_documented": 40000,
+        "note": "Support says 10 requests/second/IP, while indexed GraphQL docs say 300/minute/IP. Confirm the granted limit and explicitly describe scheduled personal monitoring in the application."
+      },
+      "storage": {
+        "maximum_response_cache_hours": 24,
+        "note": "Do not assume derived data or IDs may be retained indefinitely."
+      },
+      "limitations": [
+        "Account eligibility and approval are unknown.",
+        "No unrestricted global new-project webhook was verified.",
+        "RSS support ended after 2024-08-20."
+      ],
+      "references": [
+        "https://www.upwork.com/developer/documentation/graphql/api/docs/index.html",
+        "https://support.upwork.com/hc/en-us/articles/115015857647-How-to-request-an-API-key-from-Upwork",
+        "https://support.upwork.com/hc/en-us/articles/115015933428-What-are-the-API-requests-limits",
+        "https://support.upwork.com/hc/en-us/articles/52052528243731-RSS-deprecation"
+      ],
+      "guide": "FREELANCE_PROJECT_SOURCES.md"
+    },
+    {
+      "id": "fl_ru",
+      "name": "FL.ru",
+      "website": "https://www.fl.ru/projects/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "rss",
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "https://www.fl.ru/rss/all.xml"
+        },
+        {
+          "method": "GET",
+          "url": "https://www.fl.ru/rss/all.xml?category=5",
+          "description": "Programming category"
+        }
+      ],
+      "authentication": "None required in the observed feed requests.",
+      "evidence": {
+        "status": "public_read_observed",
+        "method": "worker_http_get_and_official_rss_advertisement",
+        "date": "2026-11-25",
+        "http_status": 200,
+        "observation": "Both feeds returned RSS with 60 items; the category feed identified Programming. Item count is a snapshot, not a documented limit."
+      },
+      "language": "Primarily Russian",
+      "polling": {
+        "provider_min_interval_seconds": null,
+        "note": "No published polling limit established."
+      },
+      "limitations": [
+        "Regional optional source; Candidate country account/payment eligibility was not checked.",
+        "A functioning RSS feed does not verify every posting or its proposal route."
+      ],
+      "references": [
+        "https://www.fl.ru/projects/",
+        "https://www.fl.ru/rss/all.xml"
+      ],
+      "guide": "FREELANCE_PROJECT_SOURCES.md"
+    },
+    {
+      "id": "codeur",
+      "name": "Codeur.com",
+      "website": "https://www.codeur.com/projects",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "rss",
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "https://www.codeur.com/projects?format=rss"
+        }
+      ],
+      "authentication": "None required in the observed feed requests.",
+      "evidence": {
+        "status": "public_read_observed",
+        "method": "worker_http_get",
+        "date": "2026-11-25",
+        "http_status": 200,
+        "observation": "First-party RSS returned 35 items; the filtered channel title was Angular. No formal public API documentation or RSS link in the current listing HTML was found."
+      },
+      "language": "Primarily French",
+      "polling": {
+        "provider_min_interval_seconds": null,
+        "note": "No published polling limit established."
+      },
+      "limitations": [
+        "Live first-party RSS, not a documented REST API contract.",
+        "French-language source; do not infer French proficiency from private candidate evidence.",
+        "Candidate country account/payment eligibility was not checked."
+      ],
+      "references": [
+        "https://www.codeur.com/projects",
+        "https://www.codeur.com/projects?format=rss"
+      ],
+      "guide": "FREELANCE_PROJECT_SOURCES.md"
+    },
+    {
+      "id": "himalayas",
+      "name": "Himalayas",
+      "website": "https://himalayas.app/",
+      "opportunity_kind": "remote_jobs_and_contracts",
+      "discovery_method": "rest_api",
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "https://himalayas.app/jobs/api/search"
+        },
+        {
+          "method": "GET",
+          "url": "https://himalayas.app/jobs/api"
+        },
+        {
+          "method": "GET",
+          "url": "https://himalayas.app/jobs/rss",
+          "format": "rss"
+        }
+      ],
+      "authentication": "Public access without a key; optional free Bearer key for a separate account allowance.",
+      "evidence": {
+        "status": "public_read_observed",
+        "method": "parent_http_get_and_official_documentation",
+        "date": "2026-11-25",
+        "http_status": 200,
+        "observation": "JSON jobs returned. This was not an exhaustive filter or coverage test."
+      },
+      "freshness": {
+        "search_cache_up_to_seconds": 3600,
+        "browse_cache_up_to_seconds": 7200,
+        "cache_note": "A rarely requested query can return an older copy while it refreshes.",
+        "json_pubDate_semantics": "Last updated, not original publication, according to the current JSON API reference.",
+        "rss_max_items": 100,
+        "rss_regeneration_frequency": "daily",
+        "rss_pagination": false
+      },
+      "polling": {
+        "provider_min_interval_seconds": null,
+        "note": "Respect shared public limits or the optional key's documented account allowance. Cached data means repeated calls need not expose newly posted jobs."
+      },
+      "limitations": [
+        "Check employmentType, locationRestrictions and timezoneRestrictions.",
+        "Use applicationLink and visible Himalayas source credit; preserve applicable API terms."
+      ],
+      "references": [
+        "https://himalayas.app/docs/remote-jobs-api",
+        "https://himalayas.app/rss"
+      ],
+      "guide": "REMOTE_JOB_FEEDS.md"
+    },
+    {
+      "id": "remote_ok",
+      "name": "Remote OK",
+      "website": "https://remoteok.com/",
+      "opportunity_kind": "remote_jobs_and_contracts",
+      "discovery_method": "rest_api",
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "https://remoteok.com/api"
+        },
+        {
+          "method": "GET",
+          "url": "https://remoteok.com/remote-jobs.rss",
+          "format": "rss"
+        }
+      ],
+      "authentication": "No authentication required by the official public-feed guidance.",
+      "evidence": {
+        "status": "public_read_observed",
+        "method": "parent_http_get_and_official_faq",
+        "date": "2026-11-25",
+        "http_status": 200,
+        "observation": "JSON array contained 98 job records after excluding metadata. This is a snapshot, not a guaranteed feed limit."
+      },
+      "polling": {
+        "provider_min_interval_seconds": null,
+        "note": "No current numeric polling guarantee established."
+      },
+      "limitations": [
+        "Skip legal/metadata objects rather than treating every array element as a job.",
+        "Filter contract type, stack and location locally; retain original job links and credit."
+      ],
+      "references": [
+        "https://remoteok.com/faq",
+        "https://remoteok.com/api"
+      ],
+      "guide": "REMOTE_JOB_FEEDS.md"
+    },
+    {
+      "id": "we_work_remotely",
+      "name": "We Work Remotely",
+      "website": "https://weworkremotely.com/",
+      "opportunity_kind": "remote_jobs_and_contracts",
+      "discovery_method": "rss",
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "https://weworkremotely.com/categories/remote-full-stack-programming-jobs.rss"
+        },
+        {
+          "method": "GET",
+          "url": "https://weworkremotely.com/categories/remote-programming-jobs.rss"
+        },
+        {
+          "method": "GET",
+          "url": "https://weworkremotely.com/remote-jobs.rss"
+        }
+      ],
+      "authentication": "Public RSS; no authentication required in the observed request.",
+      "evidence": {
+        "status": "public_read_observed",
+        "method": "parent_http_get_and_official_rss_documentation",
+        "date": "2026-11-25",
+        "http_status": 200,
+        "observation": "RSS parsed successfully. Contract and location eligibility still require checking."
+      },
+      "polling": {
+        "provider_min_interval_seconds": null,
+        "note": "No current numeric polling guarantee established."
+      },
+      "limitations": [
+        "RSS is the verified discovery interface; the separate partner posting API is not a search API.",
+        "Keep source attribution and links; deduplicate overlapping category feeds."
+      ],
+      "references": [
+        "https://weworkremotely.com/remote-job-rss-feed"
+      ],
+      "guide": "REMOTE_JOB_FEEDS.md"
+    },
+    {
+      "id": "jobicy",
+      "name": "Jobicy",
+      "website": "https://jobicy.com/",
+      "opportunity_kind": "remote_jobs_and_contracts",
+      "discovery_method": "rest_api",
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "https://jobicy.com/api/jobs"
+        },
+        {
+          "method": "GET",
+          "url": "https://jobicy.com/jobs/feed",
+          "format": "rss"
+        }
+      ],
+      "authentication": "No key required for public listing URLs; paid/direct-ATS-link access is a separate optional service.",
+      "evidence": {
+        "status": "public_read_observed",
+        "method": "parent_http_get_and_official_documentation",
+        "date": "2026-11-25",
+        "http_status": 200,
+        "observation": "JSON jobs returned. Current website documents up to 100 per page, whereas the GitHub README advertised 200; use the website's conservative limit and validate."
+      },
+      "freshness": {
+        "publication_delay_hours": 3,
+        "discovery_window_days": 7
+      },
+      "polling": {
+        "provider_min_interval_seconds": 3600,
+        "scope": "Start of a new synchronization pass; continue cursor pages sequentially within a pass.",
+        "minimum_spacing_between_requests_seconds": 1,
+        "note": "A few passes per day are normally enough; obey Retry-After and avoid scheduling on minute 00."
+      },
+      "limitations": [
+        "Absence from the seven-day feed does not establish closure.",
+        "Credit Jobicy and preserve its listing links for public API data.",
+        "Discover current industry/location slugs rather than inventing them."
+      ],
+      "references": [
+        "https://jobicy.com/jobs-rss-feed",
+        "https://github.com/Jobicy/remote-jobs-api"
+      ],
+      "guide": "REMOTE_JOB_FEEDS.md"
+    },
+    {
+      "id": "remotive",
+      "name": "Remotive",
+      "website": "https://remotive.com/",
+      "opportunity_kind": "remote_jobs_and_contracts",
+      "discovery_method": "rest_api",
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "https://remotive.com/api/remote-jobs"
+        }
+      ],
+      "authentication": "Public API; no credentials used in the successful parent requests.",
+      "evidence": {
+        "status": "public_read_with_filter_anomaly",
+        "method": "parent_http_get_and_official_documentation",
+        "date": "2026-11-25",
+        "http_status": 200,
+        "observation": "Returned 15 jobs across mixed categories despite category/limit parameters. The response warning concerned the old domain migration, not an announced result cap. A worker request separately received HTTP 403."
+      },
+      "freshness": {
+        "publication_delay_hours": 24
+      },
+      "polling": {
+        "provider_min_interval_seconds": null,
+        "recommended_max_checks_per_day": 4,
+        "note": "Provider recommends no more than four daily requests. Do not use for immediate project alerts."
+      },
+      "limitations": [
+        "Validate filters and coverage; match locally, and do not claim the observed 15 rows are a documented permanent cap.",
+        "Credit and link back to Remotive; redistribution and signup-gated listing restrictions apply."
+      ],
+      "references": [
+        "https://remotive.com/remote-jobs/api",
+        "https://github.com/remotive-com/remote-jobs-api"
+      ],
+      "guide": "REMOTE_JOB_FEEDS.md"
+    },
+    {
+      "id": "peopleperhour",
+      "name": "PeoplePerHour",
+      "website": "https://www.peopleperhour.com/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "email_alerts",
+      "endpoints": [],
+      "authentication": "Account saved searches; separately authorized mailbox access would be needed for ingestion.",
+      "evidence": {
+        "status": "official_documentation_only",
+        "method": "official_saved_search_help",
+        "date": "2026-11-25",
+        "observation": "Up to 10 saved searches with instant or daily new-result emails. No public project-search API was confirmed."
+      },
+      "limitations": [
+        "No alert was configured and no mailbox was accessed.",
+        "Email ingestion would not be a PeoplePerHour project API."
+      ],
+      "references": [
+        "https://support.peopleperhour.com/hc/en-us/articles/205217987-Saved-Searches"
+      ],
+      "guide": "FREELANCE_PROJECT_SOURCES.md"
+    },
+    {
+      "id": "workana",
+      "name": "Workana",
+      "website": "https://www.workana.com/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "email_alerts",
+      "endpoints": [],
+      "authentication": "Account project-notification settings; separately authorized mailbox access would be needed for ingestion.",
+      "evidence": {
+        "status": "official_documentation_only",
+        "method": "worker_official_help_review",
+        "date": "2026-11-25",
+        "observation": "Official help describes project email notifications. No public project-search API was confirmed."
+      },
+      "limitations": [
+        "No alert was configured and no mailbox was accessed."
+      ],
+      "references": [
+        "https://help.workana.com/hc/en-us/articles/360042101293-How-to-Set-Up-Project-Email-Notifications"
+      ],
+      "guide": "FREELANCE_PROJECT_SOURCES.md"
+    },
+    {
+      "id": "freelancermap",
+      "name": "Freelancermap",
+      "website": "https://www.freelancermap.com/projects",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "manual_search_and_email_alerts",
+      "endpoints": [],
+      "authentication": "Account project alerts; Basic one alert and Premium unlimited per current help.",
+      "evidence": {
+        "status": "official_email_documentation_and_unavailable_feed",
+        "method": "worker_official_help_review_and_http_get",
+        "date": "2026-11-25",
+        "observation": "Advertised https://www.freelancermap.com/feeds/projects/int-international.xml returned HTTP 404. Official help documents project email alerts."
+      },
+      "limitations": [
+        "Do not configure the unavailable RSS endpoint as an active source.",
+        "Advertised XML/JSON interface imports employer projects; it is not confirmed discovery/export.",
+        "No alert, subscription or mailbox ingestion was set up.",
+        "Remote labels do not establish worldwide eligibility; inspect required language, presence and country restrictions.",
+        "The cited listing is activity evidence, not a verified application recommendation.",
+        "No public discovery API or global new-project webhook was verified."
+      ],
+      "references": [
+        "https://www.freelancermap.com/help.html",
+        "https://www.freelancermap.com/pricing/freelancer",
+        "https://www.freelancermap.com/project/freelance-full-stack-entwickler-m-w-d-c-net-angular-azure-und-iot",
+        "https://www.freelancermap.com/files/brochure/freelancermap-for-freelancers-and-agencies_v4.pdf?t=1741735826"
+      ],
+      "guide": "FREELANCE_PROJECT_SOURCES.md",
+      "follow_up_evidence": {
+        "status": "official_documentation_and_public_pages_reviewed",
+        "method": "official_project_listing_help_and_pricing_review",
+        "date": "2026-11-25",
+        "observation": "A public C#/.NET, Angular, Azure and IoT listing was published on 24 November 2026. Official help documents project alerts. The application route and eligibility to perform that engagement from Israel were not verified."
+      },
+      "runtime_check": {
+        "status": "not_run",
+        "scope": "2026-11-25 documentation follow-up only",
+        "note": "No new provider API/feed request, account login, alert setup or subscription action was performed; the earlier HTTP 404 observation is preserved."
+      },
+      "research_guide": "../docs/FREELANCE_PLATFORM_RESEARCH_2026-11-25.md"
+    },
+    {
+      "id": "xplace",
+      "name": "XPlace",
+      "website": "https://www.xplace.com/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "manual_search",
+      "endpoints": [],
+      "authentication": "Use the established project-search workflow and current account terms.",
+      "evidence": {
+        "status": "existing_playbook_source",
+        "method": "existing_playbook_preserved",
+        "date": "2026-11-25",
+        "observation": "Retained as the existing local project source. This addition did not establish a public API or RSS feed."
+      },
+      "limitations": [
+        "Do not infer an API from listings mentioning API development.",
+        "Search access does not authorize paid proposal access."
+      ],
+      "references": [
+        "https://www.xplace.com/"
+      ],
+      "guide": "JOB_SEARCH_PLAYBOOK.md"
+    },
+    {
+      "id": "fiverr",
+      "name": "Fiverr",
+      "website": "https://www.fiverr.com/",
+      "opportunity_kind": "freelancer_services",
+      "discovery_method": "not_project_discovery",
+      "endpoints": [],
+      "evidence": {
+        "status": "official_scope_review",
+        "method": "official_mcp_help",
+        "date": "2026-11-25",
+        "observation": "Official MCP searches freelancers, seller services and reviews. It does not document a stream of new client projects for freelancers to pursue."
+      },
+      "limitations": [
+        "Do not claim Fiverr has no official API/integration.",
+        "Do not configure supplier search as new-project discovery."
+      ],
+      "references": [
+        "https://help.fiverr.com/hc/en-us/articles/52715474121361-Using-Fiverr-MCP-in-your-AI-agent"
+      ],
+      "guide": "FREELANCE_PROJECT_SOURCES.md"
+    },
+    {
+      "id": "guru",
+      "name": "Guru",
+      "website": "https://www.guru.com/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "unconfirmed",
+      "endpoints": [],
+      "evidence": {
+        "status": "access_unverified",
+        "method": "worker_official_documentation_fetch",
+        "date": "2026-11-25",
+        "observation": "The official help-linked API documentation returned HTTP 403; public project-search capability was not established."
+      },
+      "limitations": [
+        "A 403 does not prove that no API exists.",
+        "Do not configure an unverified historic RSS/API URL as a working monitor."
+      ],
+      "references": [
+        "https://www.guru.com/apihelp/help.html"
+      ],
+      "guide": "FREELANCE_PROJECT_SOURCES.md"
+    },
+    {
+      "id": "malt",
+      "name": "Malt",
+      "website": "https://www.malt.com/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "inbound_matching",
+      "endpoints": [],
+      "evidence": {
+        "status": "project_discovery_unverified",
+        "method": "worker_official_api_scope_review",
+        "date": "2026-11-25",
+        "observation": "Official API/token material exists for other operations, including invoices; public opportunity search was not confirmed."
+      },
+      "limitations": [
+        "API existence alone does not establish public project discovery.",
+        "No public job-post stream or global new-project webhook was verified.",
+        "Language, client location and business verification can limit matches.",
+        "Use the fee shown in the current quote, including country-specific exceptions.",
+        "Profile counts and reviews do not prove current openings or that every client originated on Malt."
+      ],
+      "references": [
+        "https://api.malt.com/",
+        "https://help.malt.com/hc/en-150/articles/40253379968530-How-do-I-create-an-access-token",
+        "https://help.malt.com/hc/en-150/articles/30748346951826-How-do-I-get-started-as-a-freelancer-on-Malt",
+        "https://help.malt.com/hc/en-150/articles/29511599491090-How-do-I-register-on-Malt-from-abroad",
+        "https://help.malt.com/hc/en-150/articles/29539691425938-How-do-the-Malt-service-fees-work-for-freelancers",
+        "https://en.malt.fr/profile/arnaudpatron"
+      ],
+      "guide": "FREELANCE_PROJECT_SOURCES.md",
+      "authentication": "Freelancer account and business-identity verification. Israel is listed as an allowed registration country for eligible registered businesses; the user's account and payment setup were not tested.",
+      "follow_up_evidence": {
+        "status": "official_documentation_and_public_pages_reviewed",
+        "method": "official_onboarding_country_fee_and_public_profile_review",
+        "date": "2026-11-25",
+        "observation": "Official guidance documents direct client matching and no public job postings. Israel is listed as an open registration country. A public .NET/Angular technical-lead profile has a September 2026 client review; this is activity evidence, not a vacancy or matching guarantee."
+      },
+      "runtime_check": {
+        "status": "not_run",
+        "scope": "2026-11-25 documentation follow-up only",
+        "note": "No new provider API/feed request, account login, identity verification or matching access was tested; earlier evidence is preserved."
+      },
+      "research_guide": "../docs/FREELANCE_PLATFORM_RESEARCH_2026-11-25.md"
+    },
+    {
+      "id": "lemon_io",
+      "name": "Lemon.io",
+      "website": "https://lemon.io/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "curated_matching",
+      "endpoints": [],
+      "authentication": "Developer application and screening; matching depends on acceptance and current client demand.",
+      "evidence": {
+        "status": "official_documentation_only",
+        "method": "official_developer_pages_review",
+        "date": "2026-11-25",
+        "observation": "The .NET developer page describes curated matching and includes .NET/Angular examples updated in July 2026. Those examples were not verified as currently open projects."
+      },
+      "runtime_check": {
+        "status": "not_run",
+        "scope": "2026-11-25 documentation follow-up only",
+        "note": "No provider API/feed request, account login or matching access was tested."
+      },
+      "limitations": [
+        "No public project-discovery API, RSS feed or global new-project webhook was verified.",
+        "Israel-specific intake, screening acceptance and client requirements remain unverified.",
+        "Published examples are activity evidence, not verified application routes."
+      ],
+      "references": [
+        "https://lemon.io/for-developers/net-developer-jobs/"
+      ],
+      "guide": "FREELANCE_PLATFORM_RESEARCH_2026-11-25.md"
+    },
+    {
+      "id": "proxify",
+      "name": "Proxify",
+      "website": "https://career.proxify.io/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "curated_matching",
+      "endpoints": [],
+      "authentication": "Developer application and screening before access to matched client engagements.",
+      "evidence": {
+        "status": "official_documentation_only",
+        "method": "official_career_pages_review",
+        "date": "2026-11-25",
+        "observation": "Official pages describe long-term developer engagements and a .NET route. The CET +/-3-hour window fits Israel's time zone but does not establish country eligibility."
+      },
+      "runtime_check": {
+        "status": "not_run",
+        "scope": "2026-11-25 documentation follow-up only",
+        "note": "No provider API/feed request, account login or matching access was tested."
+      },
+      "limitations": [
+        "No public project-discovery API, RSS feed or global new-project webhook was verified.",
+        "Israel intake and current matching availability remain unverified.",
+        "A recruitment page is not a verified client project; check actual Angular work, location and mandatory qualifications for each match."
+      ],
+      "references": [
+        "https://career.proxify.io/",
+        "https://career.proxify.io/net-developer-job"
+      ],
+      "guide": "FREELANCE_PLATFORM_RESEARCH_2026-11-25.md"
+    },
+    {
+      "id": "yunojuno",
+      "name": "YunoJuno",
+      "website": "https://www.yunojuno.com/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "account_rss",
+      "endpoints": [],
+      "authentication": "Approved contractor account required for the personal profile-matched RSS URL; no account-specific URL was obtained.",
+      "evidence": {
+        "status": "official_documentation_only",
+        "method": "official_contractor_and_notification_help_review",
+        "date": "2026-11-25",
+        "observation": "Official help documents RSS for matching new job posts after contractor approval. Contractor access is described as free and supports global contractors; Israel-specific onboarding was not verified."
+      },
+      "runtime_check": {
+        "status": "not_run",
+        "scope": "2026-11-25 documentation follow-up only",
+        "note": "No account approval, personal feed retrieval, RSS request or subscription setup was performed."
+      },
+      "limitations": [
+        "The RSS address is account-specific; no generic endpoint is supplied.",
+        "A profile-matched feed does not establish coverage of all opportunities.",
+        "Israel-specific account and payment eligibility remain unverified.",
+        "No numeric polling allowance or global new-project webhook was verified."
+      ],
+      "references": [
+        "https://help.yunojuno.com/en/articles/6777675-new-job-post-notifications",
+        "https://help.yunojuno.com/en/articles/6193312-getting-started-as-a-contractor"
+      ],
+      "guide": "FREELANCE_PLATFORM_RESEARCH_2026-11-25.md"
+    },
+    {
+      "id": "toptal",
+      "name": "Toptal",
+      "website": "https://www.toptal.com/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "curated_matching",
+      "endpoints": [],
+      "authentication": "Talent application and screening; project access depends on acceptance and matching.",
+      "evidence": {
+        "status": "official_documentation_only",
+        "method": "official_talent_faq_and_subscription_terms_review",
+        "date": "2026-11-25",
+        "observation": "Official material describes curated freelance matching. TopAccess has separate annual subscription terms; applicability to a particular applicant or access route was not established."
+      },
+      "runtime_check": {
+        "status": "not_run",
+        "scope": "2026-11-25 documentation follow-up only",
+        "note": "No application, account login, provider API/feed request or subscription action was performed."
+      },
+      "limitations": [
+        "No public project-discovery API, RSS feed or global new-project webhook was verified.",
+        "Screening acceptance, Israel-specific access and current .NET/Angular matches remain unverified.",
+        "Distinguish Core network participation from TopAccess; do not present the paid subscription as a universal charge for every route."
+      ],
+      "references": [
+        "https://www.toptal.com/freelance-jobs/faq",
+        "https://www.toptal.com/topaccess-subscription-terms"
+      ],
+      "guide": "FREELANCE_PLATFORM_RESEARCH_2026-11-25.md"
+    },
+    {
+      "id": "contra",
+      "name": "Contra",
+      "website": "https://contra.com/",
+      "opportunity_kind": "freelance_projects",
+      "discovery_method": "account_job_feed_and_matching_email",
+      "endpoints": [],
+      "authentication": "Account job-feed and matching-email features. The separate MCP needs account authorization; opportunity-discovery access through MCP was not established.",
+      "evidence": {
+        "status": "official_documentation_only",
+        "method": "official_job_feed_matching_email_and_mcp_documentation_review",
+        "date": "2026-11-25",
+        "observation": "Help documents job-feed skill, tool and budget filters and match-triggered emails. MCP documentation covers talent search, hiring and account workflows, without establishing freelancer-side new-opportunity search."
+      },
+      "runtime_check": {
+        "status": "not_run",
+        "scope": "2026-11-25 documentation follow-up only",
+        "note": "No account login, notification setup, MCP connection or provider API/feed request was performed."
+      },
+      "limitations": [
+        "No public machine-readable discovery endpoint, polling allowance or global new-project webhook was verified.",
+        "Matching emails do not establish complete coverage.",
+        "Verified paid portfolio work does not prove the client originated through Contra.",
+        "Israel-specific payout setup remains unverified; consult current transaction, payout and currency-conversion fees."
+      ],
+      "references": [
+        "https://help.contra.com/en/articles/9322973-applying-to-jobs-on-contra",
+        "https://client-help.contra.com/en/articles/9708218-understanding-how-contra-connects-you-with-top-contractors",
+        "https://contra.com/features/mcp",
+        "https://help.contra.com/en/articles/10591423-how-to-add-a-verified-project-on-contra",
+        "https://help.contra.com/en/articles/9322934-fees-overview",
+        "https://client-help.contra.com/en/articles/9708244-payout-options-for-contractors"
+      ],
+      "guide": "FREELANCE_PLATFORM_RESEARCH_2026-11-25.md"
+    },
+    {
+      "id": "braintrust",
+      "name": "Braintrust",
+      "website": "https://www.usebraintrust.com/",
+      "opportunity_kind": "remote_jobs_and_contracts",
+      "discovery_method": "email_alerts",
+      "endpoints": [],
+      "authentication": "Account saved-search settings; separately authorized mailbox access would be needed for ingestion.",
+      "evidence": {
+        "status": "official_documentation_only",
+        "method": "official_job_search_and_payment_country_help_review",
+        "date": "2026-11-25",
+        "observation": "Official help documents saved-search email alerts and lists Israel among supported payment destinations. This does not establish eligibility for every advertised role."
+      },
+      "runtime_check": {
+        "status": "not_run",
+        "scope": "2026-11-25 documentation follow-up only",
+        "note": "No account login, saved search, mailbox access, payout setup or provider API/feed request was performed."
+      },
+      "limitations": [
+        "No public project-discovery API, RSS feed or global new-project webhook was verified.",
+        "Filter each opportunity for contract type, actual .NET and Angular work, country, hours and mandatory qualifications.",
+        "Payment-country support does not override client location restrictions."
+      ],
+      "references": [
+        "https://support.usebraintrust.com/hc/en-us/articles/14302783527447-Guide-Getting-a-Job-on-Braintrust",
+        "https://support.usebraintrust.com/hc/en-us/articles/41239692662807-Where-does-Braintrust-send-payments"
+      ],
+      "guide": "FREELANCE_PLATFORM_RESEARCH_2026-11-25.md"
+    }
+  ]
+}

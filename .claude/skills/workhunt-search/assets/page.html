@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Workhunt</title><style>
+:root{color-scheme:light dark;--bg:#f4f6f4;--panel:#fff;--ink:#1e2926;--muted:#4f6359;--line:#ccd9d0;--accent:#1f5e3a}
+@media(prefers-color-scheme:dark){:root{--bg:#141c19;--panel:#1e2924;--ink:#e6eee9;--muted:#acc2b4;--line:#3c5145;--accent:#89d0a6}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",sans-serif}.wrap{max-width:1060px;margin:auto;padding:32px 20px 64px}
+h1{font:36px/1.2 Georgia,serif;margin:0}h2{margin:26px 0 8px}.muted{color:var(--muted)}.banner{padding:12px;border:2px solid #b8860b;border-radius:8px;margin:16px 0}
+.bar{display:flex;flex-wrap:wrap;gap:12px;padding:14px 0;position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line)}select,input{padding:8px;max-width:100%;font:inherit}input[type=search]{min-width:240px;flex:1}
+.card{border:1px solid var(--line);background:var(--panel);padding:18px;margin:12px 0;border-radius:10px}.card h3{margin:0;font-size:19px}.tags{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}.tag{font-size:12px;border:1px solid var(--line);padding:2px 7px;border-radius:5px}.strong{border-left:5px solid var(--accent)}
+a{color:var(--accent);overflow-wrap:anywhere}p{margin:7px 0}details{margin-top:8px}summary{cursor:pointer}pre{white-space:pre-wrap;font:inherit;overflow-wrap:anywhere}a:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}.empty{padding:20px;border:1px dashed var(--line);border-radius:8px}
+</style></head><body><main class="wrap"><h1 id="title">Workhunt</h1><p id="headline" class="muted"></p><p id="status" role="status"></p><div id="fixture" class="banner" hidden>OFFLINE FIXTURE PREVIEW — synthetic test records, not actual opportunities.</div>
+<div class="bar"><label>Track <select id="track"><option value="all">All tracks</option></select></label><label>Review <select id="fit"><option value="all">All states</option><option value="strong">Verified strong</option><option value="clarify">Needs clarification</option><option value="unreviewed">Unreviewed</option><option value="adjacent">Adjacent</option><option value="exclude">Excluded</option></select></label><input id="query" type="search" aria-label="Search opportunities" placeholder="Company, role or technology"></div>
+<section id="list" aria-live="polite"></section><section><h2>Source coverage and changes</h2><div id="coverage"></div></section><section><h2>Manual sources and projects</h2><ul id="sources"></ul></section><p class="muted">A listing is not a verified application route. Dates retain their original meaning. Submission states come from durable evidence records, not browser checkboxes.</p></main>
+<script>
+const D=/*__DATA__*/;
+const $=id=>document.getElementById(id);
+function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);if(cls)n.className=cls;return n}
+function link(text,url){const n=el('a',text);try{const u=new URL(url);if(['https:','http:'].includes(u.protocol)&&!u.username){n.href=u.href;n.target='_blank';n.rel='noopener noreferrer'}}catch{}return n}
+$('title').textContent=D.name+' — opportunities';$('headline').textContent=D.headline;$('fixture').hidden=!D.fixture_mode;
+$('status').textContent=D.meta.checked_at?`Listings checked ${D.meta.checked_at} · ${D.meta.boards_successful}/${D.meta.boards_attempted} boards read · ${D.jobs.length} candidates for review${D.meta.coverage_limited?' · LIMITED COVERAGE':''}`:'Canonical records loaded. No API scan in this view; historical records are not newly verified opportunities.';
+$('status').append(document.createTextNode(' · Qualified now: '+D.qualified_count+' · Requested minimum: '+(D.search_brief.requested_minimum??'not set')+' · Shortfall: '+(D.shortfall??'not set')));
+for(const [key,name] of Object.entries(D.tracks)){const o=el('option',name);o.value=key;$('track').append(o)}
+function render(){const root=$('list');root.replaceChildren();const q=$('query').value.toLowerCase(),t=$('track').value,f=$('fit').value;const rows=D.jobs.filter(j=>(t==='all'||(j.tracks||[]).includes(t))&&(f==='all'||j.review.fit===f)&&(!q||[j.company,j.title,j.description].join(' ').toLowerCase().includes(q)));root.append(el('h2',rows.length+' opportunities'));
+if(!rows.length)root.append(el('p','No records in this view. This does not establish that no suitable jobs exist.','empty'));
+const order={strong:0,clarify:1,unreviewed:2,adjacent:3,exclude:4};rows.sort((a,b)=>order[a.review.fit]-order[b.review.fit]);
+for(const j of rows){const r=j.review,c=el('article',undefined,'card'+(r.fit==='strong'?' strong':''));const h=el('h3');h.append(link(j.title,j.url));c.append(h,el('p',j.company+' · '+(j.location||'Location unknown'),'muted'));const tags=el('div',undefined,'tags');for(const x of [r.fit,r.decision,...(j.tracks||[]).map(k=>D.tracks[k]||k),j.work_model_stated||'Work model unknown',j.new_to_tracker?'New to tracker':'',j.application_state])if(x)tags.append(el('span',x,'tag'));c.append(tags);
+c.append(el('p','First published: '+(j.first_published_at||'unknown')+' · Last published/reposted: '+(j.last_published_at||'unknown')+' · Updated: '+(j.updated_at||'unknown')));
+if(r.score?.total)c.append(el('p','CV fit: '+r.score.supported+'/'+r.score.total+' ('+r.score.percentage.toFixed(1)+'%) · Gaps: '+(r.score.gaps.join('; ')||'none')));
+c.append(el('p','History: '+(r.history_check?.state||'unknown')+' · Matched identities: '+(r.history_check?.matched_ids.join(', ')||'none')));
+c.append(el('p','Application route: '+(r.route?.label||r.route?.status||'not verified')+' · Education: '+(r.degree_status||'not reviewed')));if(j.saved_decision&&Object.keys(j.saved_decision).length)c.append(el('p','Saved historical decision (not current verification): '+JSON.stringify(j.saved_decision)));if(r.reason)c.append(el('p',r.reason));if(r.cv_file)c.append(el('p','CV: '+r.cv_file));for(const gap of r.verification_gaps||[])c.append(el('p',gap,'muted'));const detail=el('details');detail.append(el('summary','Full description and evidence'));detail.append(el('pre',j.description||''));if(r.route?.evidence)detail.append(el('p','Route evidence: '+r.route.evidence));if(r.publication?.evidence)detail.append(el('p','Publication evidence: '+r.publication.evidence));for(const req of r.requirements||[])detail.append(el('p',req.requirement+' — '+req.evidence));c.append(detail);root.append(c)}}
+for(const id of ['track','fit','query'])$(id).addEventListener('input',render);
+for(const fail of D.failed)$('coverage').append(el('p',fail.company+' — NOT CHECKED — '+fail.error));
+for(const change of D.changes)$('coverage').append(el('p',change.company+' — '+change.title+' — '+change.status+' (closure not proven)'));
+if(!D.failed.length&&!D.changes.length)$('coverage').append(el('p','No recorded failures or disappearance changes in this view.','muted'));
+for(const s of D.manual_sources){const li=el('li');li.append(link(s.name,s.url),document.createTextNode(' — '+s.method));$('sources').append(li)}render();
+</script></body></html>

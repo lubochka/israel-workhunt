@@ -1,0 +1,4 @@
+interface:
+  display_name: "Find paid projects"
+  short_description: "Find and qualify client projects, contracts and interim work..."
+  default_prompt: "Use $workhunt-find-freelance-projects for the requested task using my private profile and supported evidence."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reconcile history"
+  short_description: "Compare employment/project identities against prior reports..."
+  default_prompt: "Use $workhunt-reconcile-job-history for the requested task using my private profile and supported evidence."

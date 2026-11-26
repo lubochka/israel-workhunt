@@ -1,0 +1,4 @@
+interface:
+  display_name: "Configure Workhunt Profile"
+  short_description: "Map CV evidence into a private candidate profile"
+  default_prompt: "Use $workhunt-configure-profile to configure my private profile from my selected CV and explicit search preferences."

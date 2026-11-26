@@ -1,0 +1,2 @@
+# IANA timezone data for platforms without a system timezone database.
+tzdata>=2025.2

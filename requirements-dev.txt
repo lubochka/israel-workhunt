@@ -1,0 +1,3 @@
+-r requirements.txt
+# Required by the installed skill-creator quick_validate.py validator.
+PyYAML>=6.0.2

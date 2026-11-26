@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan discoverability"
+  short_description: "Plan profile/website content, language/geography choices and..."
+  default_prompt: "Use $workhunt-plan-discoverability for the requested task using my private profile and supported evidence."

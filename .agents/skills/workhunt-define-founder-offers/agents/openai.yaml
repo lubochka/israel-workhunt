@@ -1,0 +1,4 @@
+interface:
+  display_name: "Define founder offers"
+  short_description: "Draft supported founder engagement options with deliverables..."
+  default_prompt: "Use $workhunt-define-founder-offers for the requested task using my private profile and supported evidence."

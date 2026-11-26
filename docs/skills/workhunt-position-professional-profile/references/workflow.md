@@ -1,0 +1,3 @@
+# Draft professional positioning workflow
+
+Establish requested audience, artifact, channel and language. Review actual career facts and source locators; date leadership and technology experience separately from total career tenure. Preserve conflicting titles/dates and unfinished qualifications. Build one factual identity with audience-specific emphasis. Connect employer wording to role evidence and founder wording to supported workflows. Draft bio/README opening and concise channel-consistency notes only within scope. Link public-safe evidence; do not invent metrics, production readiness or availability. Completed private drafts stay in `.workhunt/`, never provider packages. No public edit, upload, CV rewrite, demo, test, website change or outreach.

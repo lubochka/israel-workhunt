@@ -1,0 +1,4 @@
+interface:
+  display_name: "Check freshness"
+  short_description: "Separate original publication, genuine refresh/repost, discov..."
+  default_prompt: "Use $workhunt-check-job-freshness for the requested task using my private profile and supported evidence."

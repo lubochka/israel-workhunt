@@ -1,0 +1,4 @@
+interface:
+  display_name: "Report new matches"
+  short_description: "Present qualifying job/project cards and requested unsent sup..."
+  default_prompt: "Use $workhunt-report-new-matches for the requested task using my private profile and supported evidence."

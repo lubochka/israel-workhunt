@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify the response route"
+  short_description: "Verify an exact vacancy application or project proposal route..."
+  default_prompt: "Use $workhunt-verify-application-route for the requested task using my private profile and supported evidence."

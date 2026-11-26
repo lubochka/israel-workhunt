@@ -1,0 +1,4 @@
+interface:
+  display_name: "Search opportunities"
+  short_description: "Private evidence-based job and project preparation"
+  default_prompt: "Use $workhunt-search for my authorized task with supported private evidence."

@@ -1,0 +1,3 @@
+# Plan the search workflow
+
+Read confirmed target roles, capabilities, geography, degree evidence, work preferences, language and requested count. Separate mandatory constraints from preferences and unknowns. Keep a proposed fixed 24-hour original/refresh window and the 75% fit gate; do not widen either to reach a count. Choose source groups by access, language, work type and eligibility, without enabling them. Reference exact history suppressions rather than inventing a standard list. Produce a reusable search brief with supported criteria, source choices, authorization boundary and unresolved dependencies. No scripts, network execution, account connection, schedule, message or application follows from planning.

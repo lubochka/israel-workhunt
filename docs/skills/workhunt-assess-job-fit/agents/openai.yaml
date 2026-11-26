@@ -1,0 +1,4 @@
+interface:
+  display_name: "Assess fit"
+  short_description: "Assess employment or client-project requirements against priv..."
+  default_prompt: "Use $workhunt-assess-job-fit for the requested task using my private profile and supported evidence."

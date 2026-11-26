@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prepare an application"
+  short_description: "Private evidence-based job and project preparation"
+  default_prompt: "Use $workhunt-apply for my authorized task with supported private evidence."

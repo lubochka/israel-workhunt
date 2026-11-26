@@ -1,0 +1,4 @@
+interface:
+  display_name: "Draft professional positioning"
+  short_description: "Draft professional positioning for employer or founder audien..."
+  default_prompt: "Use $workhunt-position-professional-profile for the requested task using my private profile and supported evidence."

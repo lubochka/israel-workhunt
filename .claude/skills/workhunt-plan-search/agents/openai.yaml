@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan the search"
+  short_description: "Plan a candidate-specific job or paid-project search without..."
+  default_prompt: "Use $workhunt-plan-search for the requested task using my private profile and supported evidence."
