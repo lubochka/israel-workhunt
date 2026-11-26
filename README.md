@@ -45,3 +45,5 @@ Shared templates resolve independently of profile existence. Installed packages 
 ## Release preparation
 
 [Validation](PrepareToGPL/VALIDATION.md) records actual checks and limitations. `tools/export_release.py DESTINATION` exports a reviewed tracked inventory to a new directory without `.git` or ignored/private files; it refuses an existing destination. Publication, push, account connection, applications and outreach are separate actions.
+
+Use the empty [search request template](templates/search-request.template.md) for an explicitly authorized search. Fill current work-location preferences privately; old run windows stay fixed while current eligibility is rechecked. The template itself grants no execution authority.

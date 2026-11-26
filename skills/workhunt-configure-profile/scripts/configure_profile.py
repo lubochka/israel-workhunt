@@ -13,7 +13,7 @@ sys.path.insert(0, str(PACKAGE.parent / "workhunt-search/scripts"))
 from profile_config import private_root, private_path, cv_manifest_path, validate_profile
 
 FACT_FIELDS = {"name", "headline", "identity", "capabilities", "experience", "education", "languages"}
-SETTING_FIELDS = {"tracks", "eligible_countries", "location_pattern", "timezone", "language", "limited_experience", "degree_policy", "preferences", "search_brief", "directory_enabled", "directory_url", "employer_registry_enabled", "employer_registry", "employer_overrides", "source_health_file", "techmap_enabled", "techmap_categories", "extra_boards", "manual_sources", "matching_aliases", "project_employment_pattern"}
+SETTING_FIELDS = {"tracks", "eligible_countries", "location_pattern", "timezone", "language", "limited_experience", "degree_policy", "preferences", "work_location_policy", "search_brief", "directory_enabled", "directory_url", "employer_registry_enabled", "employer_registry", "employer_overrides", "source_health_file", "techmap_enabled", "techmap_categories", "extra_boards", "manual_sources", "matching_aliases", "project_employment_pattern"}
 OUTPUTS = {"profile.json": "profile.template.json", "profile-evidence.json": "profile-evidence.template.json", "professional-summary.md": "professional-summary.template.md", "cv-manifest.json": "cv-manifest.template.json"}
 
 
@@ -104,6 +104,10 @@ def map_ledger(ledger, shared=None):
         if decision.get("target") not in SETTING_FIELDS or decision.get("kind") != "user_confirmation" or decision.get("source_id") not in sources or not decision.get("locator") or not decision.get("evidence"):
             raise ValueError("Search settings require an explicit sourced user confirmation")
         profile[decision["target"]] = copy.deepcopy(decision["value"])
+        if decision["target"] == "work_location_policy":
+            if not isinstance(profile["work_location_policy"], dict):
+                raise ValueError("Work-location policy requires a structured user confirmation")
+            profile["work_location_policy"]["provenance"] = {key: copy.deepcopy(decision[key]) for key in ("source_id", "locator", "evidence")}
     evidence["tenure_calculation"] = {"kind": "calculation", "method": "union of exact half-open date intervals", "input_fact_ids": interval_ids,
                                         "excluded_or_unresolved_fact_ids": excluded, "supported_non_overlapping_days": non_overlapping_days(intervals) if intervals else None}
     profile["configured"] = True

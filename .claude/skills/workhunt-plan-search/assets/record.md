@@ -17,4 +17,9 @@
 - unknowns: {{unknowns}}
 - authority: {{authority}}
 
+- Current country/work path: {{current_work_location_policy}}
+- Exact eligibility evidence and source time: {{work_eligibility_evidence}}
+- Mandatory/optional conditions and uncertainty: {{work_eligibility_constraints}}
+- Evidence limit (full-ad absence versus confirmation): {{work_eligibility_limit}}
+
 Status: draft; evidence not yet collected. No external action performed.

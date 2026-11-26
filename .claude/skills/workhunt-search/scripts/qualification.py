@@ -5,6 +5,7 @@ from fractions import Fraction
 import re
 from zoneinfo import ZoneInfo
 from records import history_decision, norm, timestamp, url_identity
+from work_eligibility import assess as assess_work_eligibility
 
 LOGIN_LABEL = "Login required; not verified beyond this point"
 
@@ -269,10 +270,11 @@ def freshness(review, brief, job=None, now=None):
     return {"passed": False, "reason": "No supported publication/refresh interval wholly inside the applicable fixed window", "window": window}
 
 
-def qualify(job, review, brief, now, found=None, applied=None, history_index=None):
+def qualify(job, review, brief, now, found=None, applied=None, history_index=None, profile=None):
     review = copy.deepcopy(review or {})
     score = score_requirements(review.get("requirements", []))
-    hard = []
+    work_eligibility = assess_work_eligibility(job, review, now, profile)
+    hard = list(work_eligibility["hard_exclusions"])
     if job.get("active") is False:
         hard.append("Source explicitly marks this posting inactive")
     if review.get("degree_status") == "mandatory_no_alternative":
@@ -327,17 +329,18 @@ def qualify(job, review, brief, now, found=None, applied=None, history_index=Non
         "cv_fit": score["passes"],
         "role": role.get("track") in brief["tracks"] and role.get("confirmed") is True and bool(role.get("evidence")),
         "stack": all(stack.get(k) is True for k in brief["required_stack"]) and bool(stack.get("evidence")),
-        "geography": geography.get("eligible") is True and bool(geography.get("evidence")) and bool({norm(c) for c in geography.get("eligible_from", [])} & {norm(c) for c in brief["eligible_countries"]}),
+        "geography": geography.get("eligible") is True and bool(geography.get("evidence")) and bool({norm(c) for c in geography.get("eligible_from", [])} & {norm(c) for c in (profile or {}).get("eligible_countries", [])}),
         "education": degree_pass and bool(review.get("degree_evidence")),
         "route": bool(route_pass), "freshness": fresh["passed"],
         "history": history_known and history["newness_qualified"] and review.get("duplicate_checked") is True,
         "cv_selection": bool(review.get("cv_file")),
     }
-    gaps = [key + " evidence missing or does not pass" for key, passed in checks.items() if not passed]
+    checks["work_eligibility"] = work_eligibility["passed"]
+    gaps = work_eligibility["gaps"] + [key + " evidence missing or does not pass" for key, passed in checks.items() if not passed]
     requested = review.get("fit", "unreviewed")
     qualified = not hard and all(checks.values()) and requested != "exclude"
     state = history["state"] if history["state"] != "new" else "excluded" if hard or requested == "exclude" else "qualified_new" if qualified else "needs_clarification"
     fit = "exclude" if state in {"suppressed", "already_applied", "previously_reported", "excluded"} else "strong" if qualified else "unreviewed" if requested == "unreviewed" else "clarify"
     return {**review, "fit": fit, "decision": state, "qualified": qualified and state == "qualified_new",
-            "score": score, "checks": checks, "history_check": history, "freshness_check": fresh,
+            "score": score, "checks": checks, "history_check": history, "freshness_check": fresh, "work_eligibility_check": work_eligibility,
             "hard_exclusions": hard, "verification_gaps": hard + gaps, "route": route}

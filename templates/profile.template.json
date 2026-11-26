@@ -11,6 +11,14 @@
   "timezone": null,
   "language": null,
   "eligible_countries": [],
+  "work_location_policy": {
+    "base_country": null,
+    "work_path": null,
+    "exclude_required_foreign_conditions": [],
+    "unknown_eligibility": null,
+    "candidate_legal_status": "unknown",
+    "provenance": {}
+  },
   "location_pattern": "",
   "tracks": {},
   "limited_experience": {},

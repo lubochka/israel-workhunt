@@ -84,6 +84,10 @@ def restricted_pattern(value, field):
 def validate_profile(profile):
     if not isinstance(profile, dict) or profile.get("configured") is not True:
         raise ValueError(f"{SETUP}: configured must be true after evidence and preferences are reviewed")
+    from work_eligibility import policy_for, policy_gaps
+    gaps = policy_gaps(policy_for(profile))
+    if gaps:
+        raise ValueError(f"{SETUP}: " + "; ".join(gaps))
     tracks = profile.get("tracks")
     if not isinstance(tracks, dict) or not tracks:
         raise ValueError(f"{SETUP}: at least one explicit role track is required")

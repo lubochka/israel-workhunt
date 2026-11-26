@@ -13,7 +13,7 @@ HERE = Path(__file__).resolve().parent
 
 
 def effective_review(job, review, profile, now, found=None, applied=None, brief=None):
-    return qualify(job, review, brief or search_brief(profile, now), now, found, applied)
+    return qualify(job, review, brief or search_brief(profile, now), now, found, applied, profile=profile)
 
 
 def canonical_review(job):

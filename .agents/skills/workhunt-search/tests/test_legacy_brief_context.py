@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-from test_kit import OfflineCase, opportunity
+from test_kit import eligibility_review, OfflineCase, opportunity
 import packets
 import qualification
 import records
@@ -32,6 +32,7 @@ class LegacyBriefContextTests(OfflineCase):
             "role": {"track": "development", "confirmed": True, "evidence": "Development duties"},
             "stack": {"dotnet": True, "angular": True, "evidence": "Both substantive"},
             "geography": {"eligible": True, "eligible_from": ["IL"], "evidence": "Synthetic country eligibility"},
+            "work_eligibility": eligibility_review(self.job, self.now),
             "route": {"status": "form_observed", "checked_at": self.now.isoformat(), "job_identifier": self.job["job_id"], "source_url": self.job["url"], "evidence": "Exact vacancy form"},
             "publication": {"kind": "original", "at": (self.now - dt.timedelta(hours=48)).isoformat(), "source_url": self.job["url"], "evidence": "Exact original timestamp"},
             "source_membership": {"group": "employer_registry", "opportunity_id": self.job["id"], "listing_url": self.job["url"], "source_url": "https://fixture.invalid/board", "observed_at": self.now.isoformat(), "evidence": "Exact requisition observed on registry board"},
@@ -54,7 +55,7 @@ class LegacyBriefContextTests(OfflineCase):
         return records.load(self.work / "packet.json")
 
     def evaluate(self, brief):
-        return qualification.qualify(self.job, self.review, brief, self.now, {"opportunities": []}, {"records": []})
+        return qualification.qualify(self.job, self.review, brief, self.now, {"opportunities": []}, {"records": []}, profile=self.profile)
 
     def test_synthetic_legacy_run_id_and_copied_brief_are_same_collector(self):
         self.assertNotIn("execution_context", self.legacy)

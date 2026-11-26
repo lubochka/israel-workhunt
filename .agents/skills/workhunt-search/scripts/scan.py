@@ -311,7 +311,7 @@ def scan(workdir, network=False, fixtures=None, limit=None):
         j["first_seen_at"] = first_seen.get(j["id"]) or now.isoformat()
         j["new_to_tracker"] = j["id"] not in first_seen
         j["history_check"] = history_decision(j, found, applied, history_index)
-        j["qualification"] = qualify(j, {}, brief, now, found, applied, history_index)
+        j["qualification"] = qualify(j, {}, brief, now, found, applied, history_index, profile=profile)
     all_jobs.sort(key=lambda j: j["id"])
     hits = [j for j in all_jobs if set(j["tracks"]) & set(brief["tracks"])]
     run = runs / (now.strftime("%Y%m%dT%H%M%S%f") + "-" + uuid.uuid4().hex[:6])

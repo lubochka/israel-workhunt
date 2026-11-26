@@ -6,7 +6,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parent.parent
 FORBIDDEN_PARTS = {".git", ".workhunt", "__pycache__", ".venv", "tmp", "output", "validation", "data", "runs", "fixture-runs", "outcomes", "reports", "logs"}
-FORBIDDEN_NAMES = {"profile.json", "profile-evidence.json", "professional-summary.md", "cv-manifest.json", "applications.json", "reviews.json", "manual-opportunities.json", ".env", "workspace.local.json", "source-health.json", "employer-overrides.json", "legacy-collector-5f723c0.json", "generate_legacy_brief_fixture.py"}
+FORBIDDEN_NAMES = {"profile.json", "profile-evidence.json", "professional-summary.md", "cv-manifest.json", "applications.json", "reviews.json", "manual-opportunities.json", ".env", "workspace.local.json", "source-health.json", "employer-overrides.json", "legacy-collector-5f723c0.json", "generate_legacy_brief_fixture.py", "workhunt_prompt.md"}
 FORBIDDEN_SUFFIXES = {".pdf", ".docx", ".doc", ".pem", ".key", ".pyc", ".pyo"}
 
 

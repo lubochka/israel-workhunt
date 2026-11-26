@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from test_kit import OfflineCase, ReviewTests, synthetic_profile, board, gh_row
+from test_kit import OfflineCase, ReviewTests, synthetic_profile, location_policy, board, gh_row
 import scan
 import render
 import records
@@ -76,6 +76,7 @@ class ReleaseConfigurationTests(OfflineCase):
         self.assertEqual([j["job_id"] for j in scan.load(first / "hits.json")], ["123456"])
         second_profile = synthetic_profile()
         second_profile.update(name="Second Synthetic Candidate", timezone="America/Toronto", eligible_countries=["CA", "Canada"], location_pattern="Canada|Toronto", tracks={"data": {"label": "Data", "title": "Data Engineer", "stack_all": ["Python", "PostgreSQL"]}}, limited_experience={}, matching_aliases=[], project_employment_pattern="")
+        second_profile["work_location_policy"] = location_policy("CA", "remote_contract")
         second_profile["search_brief"] = {"tracks": ["data"], "required_stack": ["python", "postgresql"], "requested_minimum": None}
         scan.save(self.work / "profile.json", second_profile)
         second = scan.scan(self.work.parent, fixtures=path)
@@ -100,6 +101,7 @@ class ReleaseConfigurationTests(OfflineCase):
         profile = json.loads((ROOT / "templates/profile.template.json").read_text())
         self.assertFalse(any(profile[k] for k in ("directory_enabled", "employer_registry_enabled", "techmap_enabled")))
         self.assertEqual(profile["extra_boards"], {})
+        self.assertEqual(profile["work_location_policy"], {"base_country": None, "work_path": None, "exclude_required_foreign_conditions": [], "unknown_eligibility": None, "candidate_legal_status": "unknown", "provenance": {}})
 
 
 class DegreePolicyTests(ReviewTests):
@@ -124,6 +126,29 @@ class DegreePolicyTests(ReviewTests):
 
 
 class ProfileMappingTests(unittest.TestCase):
+    def test_cv_location_cannot_infer_work_policy_or_legal_status(self):
+        before = hashes(ROOT / "templates")
+        ledger = {"sources": [{"id": "cv"}, {"id": "user-request"}], "facts": [
+            {"id": "location", "source_id": "cv", "locator": "header", "kind": "cv_fact", "target": "identity", "value": {"location": "Synthetic Canadian address"}},
+            {"id": "employer", "source_id": "cv", "locator": "experience", "kind": "cv_fact", "target": "experience", "value": {"employer": "Synthetic German Employer", "country": "DE"}}], "decisions": []}
+        profile, _ = setup.map_ledger(ledger)
+        self.assertIsNone(profile["work_location_policy"]["base_country"])
+        self.assertIsNone(profile["work_location_policy"]["work_path"])
+        self.assertEqual(profile["work_location_policy"]["candidate_legal_status"], "unknown")
+        self.assertEqual(profile["work_location_policy"]["exclude_required_foreign_conditions"], [])
+        self.assertEqual(profile["work_location_policy"]["provenance"], {})
+        invented = copy.deepcopy(ledger)
+        invented["facts"].append({"id": "inferred", "source_id": "cv", "locator": "address", "kind": "cv_fact", "target": "work_location_policy", "value": location_policy("CA")})
+        with self.assertRaisesRegex(ValueError, "cannot set search preferences"):
+            setup.map_ledger(invented)
+        ledger["decisions"] = [{"target": "work_location_policy", "kind": "user_confirmation", "source_id": "user-request", "locator": "explicit preference", "evidence": "Synthetic user chooses Germany local employment", "value": location_policy("DE", "local_employee")}]
+        confirmed, _ = setup.map_ledger(ledger)
+        self.assertEqual(confirmed["work_location_policy"]["base_country"], "DE")
+        self.assertEqual(confirmed["work_location_policy"]["work_path"], "local_employee")
+        self.assertEqual(confirmed["work_location_policy"]["candidate_legal_status"], "unknown")
+        self.assertEqual(confirmed["work_location_policy"]["provenance"]["source_id"], "user-request")
+        self.assertEqual(before, hashes(ROOT / "templates"))
+
     def test_synthetic_cv_mapping_preserves_provenance_overlap_studies_and_conflict(self):
         before = hashes(ROOT / "templates")
         with tempfile.TemporaryDirectory(prefix="workhunt-profile-synthetic-") as folder:

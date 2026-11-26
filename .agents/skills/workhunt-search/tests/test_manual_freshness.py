@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 from zoneinfo import ZoneInfo
-from test_kit import OfflineCase, opportunity, read_page, board, gh_row
+from test_kit import eligibility_review, OfflineCase, opportunity, read_page, board, gh_row
 import packets
 import qualification
 import records
@@ -29,6 +29,7 @@ class ManualFreshnessTests(OfflineCase):
             "role": {"track": "development", "confirmed": True, "evidence": "Development duties"},
             "stack": {"dotnet": True, "angular": True, "evidence": "Both substantive"},
             "geography": {"eligible": True, "eligible_from": ["IL"], "evidence": "Synthetic country eligibility"},
+            "work_eligibility": eligibility_review(self.job, self.now),
             "route": {"status": "form_observed", "checked_at": self.now.isoformat(), "job_identifier": self.job["job_id"], "source_url": self.job["url"], "evidence": "Exact vacancy form"},
             "publication": {"kind": "original", "at": (self.now - dt.timedelta(hours=48)).isoformat(), "source_url": self.job["url"], "evidence": "Exact publication timestamp"},
             "source_membership": self.membership(),
@@ -44,7 +45,7 @@ class ManualFreshnessTests(OfflineCase):
                 "observed_at": self.now.isoformat(), "evidence": "Exact fixture requisition and URL observed in this source group"}
 
     def evaluate(self, review=None, brief=None, now=None):
-        return qualification.qualify(self.job, review or self.review, brief or qualification.search_brief(self.profile, self.now), now or self.now, {"opportunities": []}, {"records": []})
+        return qualification.qualify(self.job, review or self.review, brief or qualification.search_brief(self.profile, self.now), now or self.now, {"opportunities": []}, {"records": []}, profile=self.profile)
 
     def run_snapshot(self, hours=24, source_hours=None):
         run = {"id": "saved", "run_type": "manual", "window_start": (self.now - dt.timedelta(hours=hours)).isoformat(), "window_end": self.now.isoformat(), "requested_minimum": 10}
@@ -92,6 +93,7 @@ class ManualFreshnessTests(OfflineCase):
             review = copy.deepcopy(self.review)
             review["source_membership"]["observed_at"] = end.isoformat()
             review["route"]["checked_at"] = end.isoformat()
+            review["work_eligibility"]["observed_at"] = end.isoformat()
             review["publication"]["at"] = (end.astimezone(dt.timezone.utc) - dt.timedelta(hours=hours)).isoformat()
             result = self.evaluate(review, brief, end)
             self.assertEqual(result["qualified"], expected)

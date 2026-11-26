@@ -32,7 +32,8 @@ def select_cv(workdir, language, role):
 def prepare_packet(workdir, job, review, brief, now, language, role, drafts=None, observed_questions=None, portfolio_evidence=None, authorization=None):
     found, applied = read_store(workdir)
     cv = select_cv(workdir, language, role)
-    decision = qualify(job, {**review, "cv_file": cv["resolved_path"]}, brief, now, found, applied)
+    decision = qualify(job, {**review, "cv_file": cv["resolved_path"]}, brief, now, found, applied,
+                       profile=load(private_root(workdir) / "profile.json", {}))
     return {"schema_version": 1, "opportunity_id": job["id"],
             "identity": {k: job.get(k) for k in ("id", "job_id", "source_job_id", "company", "employer_or_client", "title", "url", "source_url")},
             "prepared_at": now.isoformat(), "preparation_state": "prepared", "submission_state": "not_sent",

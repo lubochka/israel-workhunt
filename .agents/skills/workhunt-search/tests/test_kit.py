@@ -53,6 +53,23 @@ def opportunity(**overrides):
     return value
 
 
+def location_policy(country="IL", path="remote_from_base"):
+    """Explicit synthetic preference; never a production fallback."""
+    return {"base_country": country, "work_path": path,
+            "exclude_required_foreign_conditions": ["work_visa", "work_permit", "right_to_work", "residency", "relocation", "office_only"],
+            "unknown_eligibility": "needs_clarification", "candidate_legal_status": "unknown", "provenance": {"evidence": "Synthetic user choice"}}
+
+
+def eligibility_review(job, now, country="IL", path="remote_from_base"):
+    """Supported synthetic full-ad review, not actual candidate/legal evidence."""
+    return {"opportunity_id": job["id"], "listing_url": job["url"], "source_url": job["url"],
+            "observed_at": now.isoformat(), "full_ad_reviewed": True,
+            "evidence": "Exact synthetic advertisement and work location reviewed",
+            "work_path": {"base_country": country, "work_path": path, "status": "explicit", "evidence": "The synthetic ad explicitly supports this country and work path"},
+            "authorization_basis": "not_stated_full_ad", "authorization_evidence": "No foreign visa, right-to-work, residency or relocation condition stated in the full synthetic ad",
+            "constraints_checked": True, "constraints": []}
+
+
 def read_page(path):
     """Extract the actual JSON used by the rendered page, not a parallel model."""
     source = Path(path).read_text(encoding="utf-8")
@@ -68,6 +85,7 @@ def synthetic_profile():
     return {
         "configured": True, "name": "Synthetic Candidate", "headline": "Fixture evidence only",
         "timezone": "Asia/Jerusalem", "language": "en", "eligible_countries": ["IL", "Israel"],
+        "work_location_policy": location_policy(),
         "location_pattern": r"Israel|Tel Aviv|Jerusalem", "education": [],
         "degree_policy": {"accepted_qualifications": [], "accept_experience_alternative": True},
         "limited_experience": {"react": 1},
@@ -332,6 +350,7 @@ class ReviewTests(OfflineCase):
             "role": {"track": "development", "confirmed": True, "evidence": "Senior developer role"},
             "stack": {"dotnet": True, "angular": True, "evidence": "Both substantive in duties"},
             "geography": {"eligible": True, "eligible_from": ["IL"], "evidence": "Tel Aviv Israel"},
+            "work_eligibility": eligibility_review(self.job, self.now),
         }
 
     def evaluate(self, review):
