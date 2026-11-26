@@ -4,4 +4,6 @@
 
 Choose search queries and provider access from the private profile. Never create credentials, connect accounts, pay fees, schedule polling or send proposals from this catalog alone. An access/admission page is not a specific opportunity.
 
-Employer registry inputs/overrides/health belong in `.workhunt/sources/`. The importer retains upstream provenance and its MIT notice. Public identifiers and provider API contracts are not candidate facts. No populated employer registry or private feed link is bundled.
+The repository includes the public [288-board employer snapshot and attribution record](upstream/israel-job-search/README.md) from Itai Ahiraz's [israel-job-search](https://github.com/ahiraz/israel-job-search), pinned to revision `7e3a2a8a21c7bea967ddccf6812163ee45adc2f2`, with its unchanged MIT notice. The [detailed contribution map](../THIRD_PARTY_NOTICES.md#itai-ahiraz-and-israel-job-search) credits the directory, provider integration reference, employer-board plus Techmap workflow, source maintenance, and merged discovery results.
+
+The normalized employer registry, local overrides, and health records belong in `.workhunt/sources/`. The importer retains upstream provenance and its MIT notice; saving an import requires `--apply` and does not scan employers. Public identifiers and provider API contracts are not candidate facts. A populated normalized registry, Techmap job dataset, and private feed links are not bundled. Source switches remain disabled until explicitly configured.

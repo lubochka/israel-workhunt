@@ -22,9 +22,30 @@ The source identifies its author on page 2: "Made by Shahar Bar." It also states
 
 The supplied PDF itself is not bundled in this repository. The sharing statement is positive evidence of permission to share; no explicit AGPL relicensing permission was found. This remains a licensing limitation requiring resolution before representing every inherited portion as AGPL-cleared.
 
+## Itai Ahiraz and israel-job-search
+
+**[Itai Ahiraz](https://www.linkedin.com/in/itai-ahiraz/)** created and shared **[israel-job-search](https://github.com/ahiraz/israel-job-search)**. Workhunt directly reuses its pinned employer directory and draws on its reference implementation for combining employer-board collection, Techmap discovery, and merged results. The inspected upstream revision is [`7e3a2a8a21c7bea967ddccf6812163ee45adc2f2`](https://github.com/ahiraz/israel-job-search/tree/7e3a2a8a21c7bea967ddccf6812163ee45adc2f2).
+
+The repository now bundles the exact **288-record** upstream `data/companies.json` as `sources/upstream/israel-job-search/companies-7e3a2a8.json`: Comeet 168, Greenhouse 67, Ashby 27, Lever 12, SmartRecruiters 11, and Recruitee 3. Its SHA-256 is `a2cfbf275e043f0c133059f9aed54a226d8f682199d0d9e5713d15ffd24f657d`. The [source inventory](https://github.com/lubochka/israel-workhunt/blob/main/sources/upstream/israel-job-search/README.md) records the source URL, exact bytes, and retained notice.
+
+| Contribution from israel-job-search | Evidence in the pinned upstream | Impact in Workhunt |
+| --- | --- | --- |
+| Employer directory and provider identifiers | `data/companies.json`; `jobsearch/companies.py` | The exact source records are bundled. `source_registry.upstream_board()` consumes their `name`, `domain`, `provider`, `token`, and `careers_url`, including the Comeet `uid::token` representation. |
+| Provider coverage and collection reference | `jobsearch/adapters.py`; `jobsearch/discover.py` | The integration maps six provider families and adds SmartRecruiters and conditional Recruitee support in `adapters.py` and `scan.py`. The earlier Greenhouse, Ashby, Lever, and Comeet collector foundation remains separately credited to Shahar Bar. |
+| Employer boards plus complementary Techmap discovery | `skills/find-jobs/SKILL.md`; `jobsearch/boards.py`; `jobsearch/techmap.py` | `scan.collect_boards()` combines explicitly selected sources. `TECHMAP_CATEGORIES` and `techmap_parse()` support the same 19 category feeds; Techmap remains separately attributed to Michael Lugassy. |
+| Combined results with source information | `jobsearch/merge.py` | The upstream merge workflow informed Workhunt's combined discovery handling. `deduplicate_discoveries()` uses Workhunt's own identity rules and retains source observations, aliases, categories, and date provenance. |
+| Source maintenance and personal additions | `jobsearch/companies.py`; `skills/update-companies/SKILL.md`; `jobsearch/discover.py` | The upstream separation of shared companies and personal additions is a reference for Workhunt's maintained registry. `maintain_workhunt_sources.py`, `build_registry()`, and `effective_boards()` import the attributed snapshot while preserving local overrides and recorded health. |
+
+Workhunt uses its own skill interface and implementation. Its SmartRecruiters completeness checks, conditional Recruitee XML reader, registry state preservation, and fit/freshness/application/history verification are Workhunt adaptations and additions. This mapping credits the source data and integration reference without asserting that the upstream plugin, title matcher, or every adapter algorithm was imported unchanged.
+
+The raw employer snapshot is bundled; a populated normalized registry and Techmap job data are not. Import remains an explicit local action, source switches are disabled in the shared profile, and a network scan requires separate configuration. The counts above describe the pinned source inventory; current board availability and open jobs require a separate live check.
+
+**Upstream attribution chain:** israel-job-search's [Credits and sources](https://github.com/ahiraz/israel-job-search/blob/7e3a2a8a21c7bea967ddccf6812163ee45adc2f2/README.md#credits-and-sources) credits **[Amir Baldiga's jobsworm](https://github.com/baldiga/jobsworm)** for the board adapters and company list, and **[Michael Lugassy's Techmap](https://github.com/mluggy/techmap)** for the category job lists. Workhunt preserves these origins alongside the acknowledgement of Itai's integrated project and workflow.
+
+The upstream **MIT notice is retained unchanged** at [sources/upstream/israel-job-search/LICENSE](sources/upstream/israel-job-search/LICENSE), including `Copyright (c) 2026 israel-job-search contributors`. The personal acknowledgement of Itai accompanies that collective copyright notice. Imported registry provenance retains the upstream repository, revision, source URL, snapshot hash, and MIT attribution.
+
 ## Other sources
 
-- Employer registry import compatibility references https://github.com/ahiraz/israel-job-search at revision `7e3a2a8a21c7bea967ddccf6812163ee45adc2f2`. Its MIT notice is preserved at [sources/upstream/israel-job-search/LICENSE](sources/upstream/israel-job-search/LICENSE). No upstream company snapshot or populated registry is bundled. A later authorized import must preserve its notice and source provenance.
 - The optional Techmap adapter refers to Michael Lugassy's https://github.com/mluggy/techmap. Source data is ODbL-1.0; source credit and license URLs remain in adapter output. No Techmap dataset is bundled or relicensed.
 - Provider names, official endpoints, attribution requirements and historical access observations are factual reference material. APIs, account access and data retention remain subject to their own terms; this project license grants no account access or data rights.
 

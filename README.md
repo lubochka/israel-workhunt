@@ -8,7 +8,7 @@ Project-owned code and documentation are **AGPL-3.0-only**. See [LICENSE](LICENS
 
 Thank you to the people who shared resources that helped make this project possible:
 
-- **[Itai Ahiraz](https://www.linkedin.com/in/itai-ahiraz/)** — for creating and sharing [israel-job-search](https://github.com/ahiraz/israel-job-search), a valuable resource for Workhunt's Israeli job-search integration.
+- **[Itai Ahiraz](https://www.linkedin.com/in/itai-ahiraz/)** — for creating and sharing **[israel-job-search](https://github.com/ahiraz/israel-job-search)**. Workhunt includes its pinned directory of **288 employer boards** and uses its combined employer-board and Techmap search design as a reference for registry imports, SmartRecruiters and conditional Recruitee support, optional discovery across **19 Techmap categories**, and merging results with source provenance. See [detailed attribution](THIRD_PARTY_NOTICES.md#itai-ahiraz-and-israel-job-search).
 - **[Shahar Bar](https://www.linkedin.com/in/bshahar/)** — for creating and sharing the **Job Hunt Kit** for Claude Code, a foundation for Workhunt's local job-search workflow. Workhunt's collector is adapted from his kit, which also provided a workflow for setting up a profile, reviewing matches against a CV, retaining scan history, and displaying results locally. See [detailed attribution](THIRD_PARTY_NOTICES.md#shahar-bar-and-the-job-hunt-kit).
 
 ## Private setup
