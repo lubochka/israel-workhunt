@@ -162,11 +162,38 @@ class ProfileMappingTests(unittest.TestCase):
             self.assertIsNone(profile["timezone"])
             self.assertIsNone(profile["preferences"]["availability"])
             self.assertTrue((root / "professional-summary.md").is_file())
+            summary = (root / "professional-summary.md").read_text(encoding="utf-8")
+            self.assertIn("Target role: Unknown; no explicit role preference supplied", summary)
+            self.assertIn("1,096 days; overlapping intervals counted once", summary)
+            self.assertIn("partial tenure total", summary)
+            self.assertIn("degree studies; not completed", summary)
+            self.assertIn("date-conflict", summary)
+            self.assertIn(str(cv), summary)
+            self.assertNotIn("{{", summary)
             saved = hashes(root)
             with self.assertRaisesRegex(ValueError, "reviewed update"):
                 setup.populate(workspace, ledger)
             self.assertEqual(saved, hashes(root))
         self.assertEqual(before, hashes(ROOT / "templates"))
+
+    def test_summary_uses_template_layout_without_turning_headline_into_desired_role(self):
+        ledger = {"sources": [{"id": "cv"}], "facts": [
+            {"id": "headline", "source_id": "cv", "locator": "line 1", "kind": "cv_fact", "target": "headline", "value": "Historical role, not a preference"}], "decisions": []}
+        profile, evidence = setup.map_ledger(ledger)
+        original = (setup.PACKAGE / "assets/professional-summary.template.md").read_bytes()
+        with tempfile.TemporaryDirectory(prefix="workhunt-summary-template-") as folder:
+            package = Path(folder)
+            (package / "assets").mkdir()
+            template = package / "assets/professional-summary.template.md"
+            template.write_bytes(b"Template layout sentinel\n" + original)
+            before = template.read_bytes()
+            with patch.object(setup, "PACKAGE", package):
+                summary = setup.render_summary(profile, evidence)
+            self.assertTrue(summary.startswith("Template layout sentinel\n"))
+            self.assertIn("Target role: Unknown; no explicit role preference supplied", summary)
+            self.assertNotIn("Target role: Historical role", summary)
+            self.assertEqual(template.read_bytes(), before)
+        self.assertEqual((setup.PACKAGE / "assets/professional-summary.template.md").read_bytes(), original)
 
     def test_preferences_cannot_be_inferred_from_cv_facts(self):
         ledger = {"sources": [{"id": "cv"}], "facts": [{"id": "x", "source_id": "cv", "locator": "page 1", "kind": "cv_fact", "target": "eligible_countries", "value": ["CA"]}]}

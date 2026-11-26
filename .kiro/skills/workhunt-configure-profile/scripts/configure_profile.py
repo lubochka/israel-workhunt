@@ -4,6 +4,7 @@ import copy
 import datetime as dt
 import json
 from pathlib import Path
+import re
 import sys
 
 PACKAGE = Path(__file__).resolve().parents[1]
@@ -105,6 +106,68 @@ def map_ledger(ledger):
     return profile, evidence
 
 
+def render_summary(profile, evidence):
+    """Fill the shared summary contract using supported facts and explicit preferences."""
+    template = (PACKAGE / "assets/professional-summary.template.md").read_text(encoding="utf-8")
+    confirmed_tracks = any(d.get("target") == "tracks" and d.get("kind") == "user_confirmation" for d in evidence.get("decisions", []))
+    target_role = ", ".join(str(rule.get("label") or key) for key, rule in profile.get("tracks", {}).items()) if confirmed_tracks else ""
+    capabilities = "; ".join(str(item.get("name") or "Unnamed supported capability") for item in profile.get("capabilities", []))
+    experience = []
+    for item in profile.get("experience", []):
+        role = item.get("title") or item.get("role") or "Role not stated"
+        employer = item.get("employer") or "Employer not stated"
+        dates = f"{item.get('start') or 'start unknown'} to {item.get('end') or 'end unknown'}"
+        refs = ", ".join(item.get("evidence_ids", []))
+        duties = item.get("responsibilities") or []
+        duties = "; ".join(str(d) for d in duties) if isinstance(duties, list) else str(duties)
+        experience.append(f"- {role} at {employer}; {dates}." + (f" {duties}." if duties else "") + (f" Evidence: {refs}." if refs else ""))
+    tenure = evidence.get("tenure_calculation", {})
+    days = tenure.get("supported_non_overlapping_days")
+    excluded = tenure.get("excluded_or_unresolved_fact_ids", [])
+    if days is not None:
+        experience.append(f"- Supported exact-date employment union: {days:,} days; overlapping intervals counted once.")
+        experience.append("- This is a partial tenure total; unresolved or imprecise intervals are excluded: " + ", ".join(excluded) + "." if excluded else "- This covers only the supported exact-date intervals in the ledger.")
+        experience.append("- Employment tenure does not establish years in any individual technology.")
+    else:
+        experience.append("- Exact employment tenure is unknown; no supported complete date intervals were available.")
+    for item in profile.get("education", []):
+        qualification = item.get("qualification") or item.get("programme") or item.get("name") or "Education record"
+        completed = "completed" if item.get("completed") is True else "not completed" if item.get("completed") is False else "completion unknown"
+        experience.append(f"- Education: {qualification}; {completed}. Evidence: " + ", ".join(item.get("evidence_ids", [])) + ".")
+    sources = {s["id"]: s for s in evidence.get("sources", [])}
+    references = []
+    for fact in evidence.get("facts", []):
+        source = sources.get(fact.get("source_id"), {})
+        location = source.get("path") or source.get("reference") or source.get("id") or "source unknown"
+        references.append(f"- {fact['id']}: {location}; {fact['locator']}.")
+    unresolved = []
+    for conflict in evidence.get("conflicts", []):
+        if conflict.get("status") != "resolved":
+            unresolved.append("- Unresolved conflict " + str(conflict.get("id", "unidentified")) + ": " + str(conflict.get("evidence") or conflict.get("dependent_claims") or conflict.get("claims") or "See the evidence ledger.").rstrip(".") + ".")
+    for unknown in evidence.get("unknowns", []):
+        if isinstance(unknown, dict):
+            unresolved.append("- " + str(unknown.get("target") or unknown.get("field") or "Unknown fact") + ": " + str(unknown.get("reason") or "Not established").rstrip(".") + ".")
+        else:
+            unresolved.append("- " + str(unknown))
+    if not target_role:
+        unresolved.append("- Desired role remains unknown; career titles and the headline do not establish a search preference.")
+    if not profile.get("configured"):
+        unresolved.append("- Scanning remains unconfigured; missing explicit search settings must be resolved before any scan.")
+    values = {
+        "candidate_name": profile.get("name") or profile.get("identity", {}).get("name") or "Candidate identity unknown",
+        "target_role": target_role or "Unknown; no explicit role preference supplied",
+        "technology_or_capability": capabilities or "No supported capability mapped",
+        "verified_experience": "\n" + "\n".join(experience),
+        "source_reference": "\n" + ("\n".join(references) or "No supported source references"),
+        "unresolved_facts": "\n" + ("\n".join(unresolved) or "No unresolved facts recorded; absence is not independent verification."),
+    }
+    def replace(match):
+        if match[1] not in values:
+            raise ValueError("Unknown professional-summary template field: " + match[1])
+        return str(values[match[1]])
+    return re.sub(r"\{\{([a-z_]+)\}\}", replace, template)
+
+
 def populate(workspace, ledger):
     """Fill new or untouched private templates; preserve populated candidate/history data."""
     profile, evidence = map_ledger(ledger)
@@ -112,13 +175,10 @@ def populate(workspace, ledger):
     for name, template in OUTPUTS.items():
         if (root / name).exists() and (root / name).read_bytes() != (PACKAGE / "assets" / template).read_bytes():
             raise ValueError("Existing private profile output requires a reviewed update: " + name)
+    summary = render_summary(profile, evidence)
     root.mkdir(parents=True, exist_ok=True)
     (root / "profile.json").write_text(json.dumps(profile, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (root / "profile-evidence.json").write_text(json.dumps(evidence, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    summary = "# Private professional summary\n\nCandidate: " + (profile["name"] or "Unknown") + "\n\n"
-    summary += "Supported capabilities: " + ", ".join(str(c.get("name", "Unspecified")) for c in profile["capabilities"]) + "\n\n"
-    summary += "Evidence references: " + ", ".join(profile["evidence_references"]) + "\n\n"
-    summary += "Conflicts: " + str(len(evidence.get("conflicts", []))) + "; unknowns: " + str(len(evidence.get("unknowns", []))) + ". See the private evidence ledger.\n\nDraft only; not published or sent.\n"
     (root / "professional-summary.md").write_text(summary, encoding="utf-8")
     return root
 
