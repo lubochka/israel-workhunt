@@ -256,7 +256,7 @@ def scan(workdir, network=False, fixtures=None, limit=None):
     workdir = private_root(workdir)
     now = dt.datetime.now(ZoneInfo(profile["timezone"]))
     fixture_mode = fixtures is not None
-    brief = search_brief(profile, now)
+    brief = search_brief(profile, now, execution_context="collector")
     if fixture_mode:
         brief["run_type"] = "fixture"
     found, applied = ({"opportunities": [], "search_runs": []}, {"records": []}) if fixture_mode else read_store(workdir)

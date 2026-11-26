@@ -8,7 +8,10 @@
 - degree facts: {{degree_facts}}
 - preferences: {{preferences}}
 - requested minimum: {{requested_minimum}}
-- fixed window: {{fixed_window}}
+- run type and execution context: {{run_context}}
+- fixed anchor and time zone: {{run_anchor}}
+- saved source windows including other: {{source_windows}}
+- explicit source policy and adoption evidence: {{manual_policy}}
 - source choices: {{source_choices}}
 - suppressions: {{suppressions}}
 - unknowns: {{unknowns}}

@@ -6,7 +6,7 @@ from pathlib import Path
 from scan import web_url
 from profile_config import private_root, load_profile, safe_output
 from records import load, read_store, display_job, related_records, application_evidence, application_state
-from qualification import normalize_route, qualify, search_brief
+from qualification import brief_from_run, normalize_route, qualify, search_brief, select_search_run
 from zoneinfo import ZoneInfo
 
 HERE = Path(__file__).resolve().parent
@@ -19,7 +19,7 @@ def effective_review(job, review, profile, now, found=None, applied=None, brief=
 def canonical_review(job):
     """Adapt known canonical fields conservatively; ambiguous historical claims stay unresolved."""
     review = dict(job.get("review") or {})
-    for key in ("requirements", "publication", "publication_events", "degree_status", "degree_evidence", "cv_file", "duplicate_checked", "role", "stack", "geography", "full_description_read", "description_evidence"):
+    for key in ("requirements", "publication", "publication_events", "source_membership", "degree_status", "degree_evidence", "cv_file", "duplicate_checked", "role", "stack", "geography", "full_description_read", "description_evidence"):
         if key in job and key not in review:
             review[key] = job[key]
     if isinstance(job.get("fit"), dict):
@@ -61,16 +61,17 @@ def render(workdir, run=None, fixture=False, output=None, search_run_id=None):
     reviews = {} if fixture else load(workdir / "reviews.json", {})
     legacy_applications = {} if fixture else load(workdir / "applications.json", {})
     now = dt.datetime.now(ZoneInfo(profile["timezone"]))
-    canonical_runs = found.get("search_runs", [])
-    selected_id = search_run_id or found.get("active_run_id")
-    selected_run = next((r for r in canonical_runs if r.get("id") == selected_id), None) if selected_id else (canonical_runs[-1] if canonical_runs else None)
-    if selected_id and selected_run is None:
-        raise ValueError("Selected canonical search run does not exist")
-    saved_brief = meta.get("search_brief")
+    selected_run = select_search_run(found, search_run_id)
     if selected_run and not explicit_scan_run:
-        saved_brief = {**profile.get("search_brief", {}), **selected_run.get("search_brief", {}),
-                       **{k: selected_run[k] for k in ("window_start", "window_end", "requested_minimum", "run_type") if k in selected_run}}
-    brief = search_brief(profile, now, saved_brief)
+        brief = brief_from_run(profile, now, selected_run)
+    elif run:
+        # Run-directory metadata always describes collector execution, including
+        # legacy scans written before execution_context existed.
+        saved_brief = dict(meta.get("search_brief") or {})
+        saved_brief.setdefault("window_end", meta.get("checked_at", now.isoformat()))
+        brief = search_brief(profile, now, saved_brief, execution_context="collector")
+    else:
+        brief = search_brief(profile, now)
     for j in jobs:
         review = {**reviews.get(j["id"], {}), **canonical_review(j)}
         j["review"] = effective_review(j, review, profile, now, found, applied, brief)

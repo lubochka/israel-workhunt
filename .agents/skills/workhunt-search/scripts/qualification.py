@@ -32,23 +32,74 @@ def route_evidence_recorded(value, allow_proposal=True):
         or route.get("status") == "login_required" and route.get("exact_vacancy_accepting_applications") is True)
 
 
-def search_brief(profile, now, saved=None):
-    config = copy.deepcopy(saved or profile.get("search_brief") or {})
+EXTENDED_SOURCE_GROUPS = {"employer_registry", "techmap"}
+
+
+def fixed_window(end, hours, start=None, timezone=None):
+    if type(hours) not in {int, float} or hours <= 0:
+        raise ValueError("Freshness window hours must be positive")
+    expected = (end.astimezone(dt.timezone.utc) - dt.timedelta(hours=hours)).astimezone(ZoneInfo(timezone) if isinstance(timezone, str) else timezone or end.tzinfo)
+    if start is not None and (timestamp(start) is None or timestamp(start).timestamp() != expected.timestamp()):
+        raise ValueError("Saved source window does not match its hours and shared anchor")
+    return {"hours": hours, "window_start": start if start is not None else expected.isoformat(), "window_end": end.isoformat()}
+
+
+def search_brief(profile, now, saved=None, execution_context=None):
+    # A saved run is a policy snapshot. Never merge today's profile into it.
+    config = copy.deepcopy(saved if saved is not None else profile.get("search_brief") or {})
+    if not isinstance(config, dict):
+        raise ValueError("Search brief must be an object")
     run_type = config.get("run_type", "manual")
     if run_type not in {"manual", "notification", "assessment", "fixture"}:
         raise ValueError("Unknown search run type")
+    context = execution_context or config.get("execution_context") or ("manual" if run_type == "manual" else run_type)
+    if context not in {"manual", "collector", "notification", "assessment", "fixture"}:
+        raise ValueError("Unknown qualification execution context")
     minimum = config.get("requested_minimum", None)
     if minimum is not None and (type(minimum) is not int or minimum < 0):
         raise ValueError("requested_minimum must be a nonnegative integer or null")
     cap = config.get("result_cap")
     if cap is not None and (type(cap) is not int or cap < 1 or minimum is not None and cap < minimum):
         raise ValueError("A result cap cannot be smaller than the requested minimum")
-    end = timestamp(config.get("window_end")) or now.astimezone(ZoneInfo(profile["timezone"]))
-    start = timestamp(config.get("window_start")) or (end.astimezone(dt.timezone.utc) - dt.timedelta(hours=24)).astimezone(ZoneInfo(profile["timezone"]))
-    if end.astimezone(dt.timezone.utc) - start.astimezone(dt.timezone.utc) != dt.timedelta(hours=24):
-        raise ValueError("The active freshness window must be exactly 24 hours")
-    return {**config, "run_type": run_type, "requested_minimum": minimum, "result_cap": cap,
-            "timezone": profile["timezone"], "language": profile.get("language"), "window_start": start.isoformat(), "window_end": end.isoformat(),
+    for key in ("window_start", "window_end"):
+        if key in config and timestamp(config[key]) is None:
+            raise ValueError("Invalid saved " + key)
+    saved_state = saved is not None and any(key in config for key in ("window_start", "window_end", "source_windows"))
+    zone_name = config.get("timezone") if saved_state else config.get("timezone", profile["timezone"])
+    recorded_end = timestamp(config.get("window_end"))
+    # Legacy snapshots without an IANA name retain their recorded offset. A
+    # current profile zone must not change a historical policy snapshot.
+    zone = ZoneInfo(zone_name) if zone_name else recorded_end.tzinfo if recorded_end else now.tzinfo
+    end = recorded_end or now.astimezone(zone)
+    manual = context == "manual" and run_type == "manual"
+    start = timestamp(config.get("window_start"))
+    hours = (end.timestamp() - start.timestamp()) / 3600 if manual and start else 24
+    base = fixed_window(end, hours, config.get("window_start") if manual and start else None, zone)
+    windows = {"other": base}
+    if manual:
+        if "source_windows" in config:
+            if not isinstance(config["source_windows"], dict):
+                raise ValueError("Saved source_windows must be an object")
+            for group, value in config["source_windows"].items():
+                if not isinstance(value, dict):
+                    raise ValueError("Invalid saved source window")
+                for bound in ("window_start", "window_end"):
+                    if bound in value and timestamp(value[bound]) is None:
+                        raise ValueError("Saved source window has an invalid bound")
+                anchor = timestamp(value.get("window_end", end.isoformat()))
+                if anchor is None or anchor.timestamp() != end.timestamp():
+                    raise ValueError("Saved source window has a different or invalid anchor")
+                windows[group] = fixed_window(end, value.get("hours"), value.get("window_start"), zone)
+            if windows["other"]["window_start"] != base["window_start"] and timestamp(windows["other"]["window_start"]).timestamp() != timestamp(base["window_start"]).timestamp():
+                raise ValueError("Saved default source window contradicts recorded base bounds")
+        else:
+            mapping = config.get("manual_source_freshness_hours", {})
+            if not isinstance(mapping, dict):
+                raise ValueError("manual_source_freshness_hours must be an object")
+            for group in EXTENDED_SOURCE_GROUPS & mapping.keys():
+                windows[group] = fixed_window(end, mapping[group], timezone=zone)
+    return {**config, "run_type": run_type, "execution_context": context, "requested_minimum": minimum, "result_cap": cap,
+            "timezone": zone_name, "language": profile.get("language"), "window_start": base["window_start"], "window_end": end.isoformat(), "source_windows": windows,
             "tracks": config.get("tracks", list(profile["tracks"])),
             "required_stack": config.get("required_stack", []),
             "eligible_countries": profile["eligible_countries"],
@@ -62,6 +113,55 @@ def search_brief(profile, now, saved=None):
             "authorized_methods": [],
             "authorized_actions": [],
             "silence_if_zero": run_type == "notification"}
+
+
+def select_search_run(found, selected_id=None):
+    runs = found.get("search_runs", [])
+    selected_id = selected_id or found.get("active_run_id")
+    run = next((row for row in runs if row.get("id") == selected_id), None) if selected_id else (runs[-1] if runs else None)
+    if selected_id and run is None:
+        raise ValueError("Selected canonical search run does not exist")
+    return run
+
+
+def brief_from_run(profile, now, run):
+    saved = copy.deepcopy(run.get("search_brief") or {})
+    for key in ("window_start", "window_end", "source_windows", "requested_minimum", "run_type", "execution_context", "manual_source_freshness_hours", "manual_freshness_policy", "timezone"):
+        if key in run:
+            saved[key] = copy.deepcopy(run[key])
+    legacy_collector = "boards_attempted" in run and "fixture_mode" in run
+    return search_brief(profile, now, saved, execution_context="collector" if legacy_collector else None)
+
+
+def source_window(job, review, brief, now):
+    end = timestamp(brief["window_end"])
+    manual = brief.get("run_type") == "manual" and brief.get("execution_context", "manual") == "manual"
+    base = brief.get("source_windows", {}).get("other") or {"window_start": brief["window_start"], "window_end": brief["window_end"], "hours": (end.timestamp() - timestamp(brief["window_start"]).timestamp()) / 3600}
+    if not manual:
+        return {**fixed_window(end, 24, timezone=brief.get("timezone")), "group": "other", "membership_verified": False, "fallback_reason": "Manual source widening does not apply to this execution context"}
+    membership = review.get("source_membership", job.get("source_membership"))
+    reason = "No structured exact-opportunity source membership; using recorded default bounds"
+    if isinstance(membership, dict):
+        group = membership.get("group")
+        observed = timestamp(membership.get("observed_at"))
+        evidence = membership.get("evidence")
+        # ID and URL must belong to the same explicit identity object. Do not
+        # combine one cross-post's ID with another cross-post's listing URL.
+        def paired(row):
+            identifiers = {str(row.get(key)) for key in ("id", "canonical_opportunity_id", "canonical_recommendation_id") if row.get(key)}
+            urls = {url_identity(row.get(key)) for key in ("url", "source_url", "canonical_project_url")} - {""}
+            if str(membership.get("opportunity_id")) in identifiers and url_identity(membership.get("listing_url")) in urls:
+                return True
+            return any(paired(alias) for key in ("source_aliases", "aliases", "identity_aliases") for alias in row.get(key, []) or [] if isinstance(alias, dict))
+        valid = isinstance(group, str) and group in EXTENDED_SOURCE_GROUPS and isinstance(evidence, str) and bool(evidence.strip()) and bool(url_identity(membership.get("source_url"))) and observed is not None and observed.timestamp() <= now.timestamp() and paired(job)
+        if valid:
+            window = brief.get("source_windows", {}).get(group)
+            if window:
+                return {**copy.deepcopy(window), "group": group, "membership_verified": True, "membership_evidence": copy.deepcopy(membership)}
+            reason = "Source membership evidenced, but the saved policy has no extended window for this group"
+        else:
+            reason = "Unsupported source membership, identity, provenance or observation; using recorded default bounds"
+    return {**copy.deepcopy(base), "group": "other", "membership_verified": False, "fallback_reason": reason}
 
 
 def score_requirements(requirements):
@@ -86,8 +186,9 @@ def score_requirements(requirements):
             "gaps": [r.get("requirement", "Unidentified criterion") for r in rows if not r["supported"]], "criteria": rows}
 
 
-def freshness(review, brief):
-    start, end = timestamp(brief["window_start"]), timestamp(brief["window_end"])
+def freshness(review, brief, job=None, now=None):
+    window = source_window(job or {}, review, brief, now or dt.datetime.now(dt.timezone.utc))
+    start, end = timestamp(window["window_start"]), timestamp(window["window_end"])
     events = review.get("publication_events") or [review.get("publication", {})]
     for event in events:
         kind = event.get("kind")
@@ -105,8 +206,8 @@ def freshness(review, brief):
             except (ValueError, KeyError):
                 continue
         if lower and upper and start.timestamp() <= lower.timestamp() <= upper.timestamp() <= end.timestamp():
-            return {"passed": True, "qualifying_event": copy.deepcopy(event)}
-    return {"passed": False, "reason": "No supported publication/refresh interval wholly inside the fixed 24-hour window"}
+            return {"passed": True, "qualifying_event": copy.deepcopy(event), "window": window}
+    return {"passed": False, "reason": "No supported publication/refresh interval wholly inside the applicable fixed window", "window": window}
 
 
 def qualify(job, review, brief, now, found=None, applied=None, history_index=None):
@@ -161,7 +262,7 @@ def qualify(job, review, brief, now, found=None, applied=None, history_index=Non
     route_pass = specific and current and route_evidence_recorded(route, allow_proposal=job.get("type") == "project")
     if route.get("status") == "login_required":
         route["label"] = {"he": "דורש התחברות; לא אומת מעבר לכך", "ru": "Требуется вход; дальнейшая проверка не выполнена"}.get(brief.get("language"), LOGIN_LABEL)
-    fresh = freshness(review, brief)
+    fresh = freshness(review, brief, job, now)
     checks = {
         "description": description,
         "cv_fit": score["passes"],

@@ -3,7 +3,7 @@ import copy
 import hashlib
 from pathlib import Path
 from records import application_evidence, load, read_store, related_records, save, timestamp
-from qualification import qualify
+from qualification import brief_from_run, qualify, search_brief, select_search_run
 from profile_config import private_root, private_path, safe_output, cv_manifest_path
 
 
@@ -36,7 +36,7 @@ def prepare_packet(workdir, job, review, brief, now, language, role, drafts=None
     return {"schema_version": 1, "opportunity_id": job["id"],
             "identity": {k: job.get(k) for k in ("id", "job_id", "source_job_id", "company", "employer_or_client", "title", "url", "source_url")},
             "prepared_at": now.isoformat(), "preparation_state": "prepared", "submission_state": "not_sent",
-            "decision": decision, "cv": cv,
+            "decision": decision, "cv": cv, "search_brief": copy.deepcopy(brief),
             "drafts": [{**copy.deepcopy(draft), "state": "not_sent"} for draft in drafts or []],
             "form": {"route": copy.deepcopy(review.get("route", {})), "message_field": review.get("route", {}).get("message_field", "unknown"),
                      "observed_questions": copy.deepcopy(observed_questions or []), "unresolved_answers": [q for q in observed_questions or [] if not q.get("answer_evidence")]},
@@ -97,7 +97,6 @@ if __name__ == "__main__":
     import datetime as dt
     import json
     from zoneinfo import ZoneInfo
-    from qualification import search_brief
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["prepare", "record-event"])
     parser.add_argument("workdir", type=Path)
@@ -122,8 +121,18 @@ if __name__ == "__main__":
         if not profile or not profile.get("timezone"):
             raise ValueError("Packet preparation requires an explicit time zone")
         now = dt.datetime.now(ZoneInfo(profile["timezone"]))
+        if "search_brief" in request and "search_run_id" in request:
+            raise ValueError("Choose a saved search_run_id or an explicit search_brief, not both")
+        if "search_brief" in request:
+            snapshot = request["search_brief"]
+            if not isinstance(snapshot, dict) or any(timestamp(snapshot.get(key)) is None for key in ("window_start", "window_end")):
+                raise ValueError("Explicit search_brief requires full saved, aware window_start and window_end bounds")
+        if "search_run_id" in request and (not isinstance(request["search_run_id"], str) or not request["search_run_id"].strip()):
+            raise ValueError("Explicit search_run_id must identify a canonical run")
+        selected_run = select_search_run(found, request.get("search_run_id")) if "search_brief" not in request else None
+        brief = brief_from_run(profile, now, selected_run) if selected_run else search_brief(profile, now, request.get("search_brief"))
         packet = prepare_packet(args.workdir, matches[0], request.get("review", matches[0].get("review", {})),
-                                search_brief(profile, now, request.get("search_brief")), now, request["language"], request["role"],
+                                brief, now, request["language"], request["role"],
                                 request.get("drafts"), request.get("observed_questions"), request.get("portfolio_evidence"), request.get("authorization"))
         if args.output.resolve() in {(args.workdir / "data/jobs.json").resolve(), (args.workdir / "data/applied_jobs.json").resolve()}:
             raise ValueError("Packet output cannot overwrite canonical records")

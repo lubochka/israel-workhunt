@@ -198,19 +198,23 @@ class MalformedDetailTests(OfflineCase):
 class ManualPolicyBoundaryTests(OfflineCase):
     def test_private_manual_policy_does_not_extend_automated_window(self):
         profile = copy.deepcopy(self.profile)
-        profile["search_brief"]["manual_source_freshness_hours"] = {"synthetic_group": 48}
+        profile["search_brief"]["manual_source_freshness_hours"] = {"employer_registry": 48}
         profile["search_brief"]["manual_freshness_policy"] = {"evidence": "Synthetic explicit manual-only preference"}
         anchor = dt.datetime(2026, 11, 26, 12, tzinfo=dt.timezone.utc)
-        brief = qualification.search_brief(profile, anchor)
+        brief = qualification.search_brief(profile, anchor, execution_context="collector")
         self.assertEqual(records.timestamp(brief["window_end"]) - records.timestamp(brief["window_start"]), dt.timedelta(hours=24))
-        self.assertEqual(brief["manual_source_freshness_hours"], {"synthetic_group": 48})
-        with self.assertRaisesRegex(ValueError, "exactly 24 hours"):
-            qualification.search_brief(profile, anchor, {"window_start": (anchor - dt.timedelta(hours=48)).isoformat(), "window_end": anchor.isoformat()})
+        self.assertEqual(brief["manual_source_freshness_hours"], {"employer_registry": 48})
+        saved = {"window_start": (anchor - dt.timedelta(hours=48)).isoformat(), "window_end": anchor.isoformat()}
+        manual = qualification.search_brief(profile, anchor, saved)
+        self.assertEqual(manual["source_windows"]["other"]["hours"], 48)
+        collector = qualification.search_brief(profile, anchor, saved, execution_context="collector")
+        self.assertEqual(collector["source_windows"]["other"]["hours"], 24)
         root = Path(__file__).resolve().parents[3]
         for path in [root / "templates/profile.template.json", root / "skills/workhunt-search/assets/profile.example.json", root / "skills/workhunt-configure-profile/assets/profile.template.json"]:
             shared = json.loads(path.read_text(encoding="utf-8"))["search_brief"]
             self.assertEqual(shared["manual_source_freshness_hours"], {})
             self.assertEqual(shared["manual_freshness_policy"], {})
+            self.assertTrue({"source_windows", "window_start", "window_end"}.isdisjoint(shared))
 
 
 if __name__ == "__main__":
