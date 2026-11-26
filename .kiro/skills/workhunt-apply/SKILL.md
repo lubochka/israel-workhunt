@@ -9,6 +9,8 @@ Read `references/context.md`, `references/tracking.md` and `references/playbook.
 
 Apply the current private country/work-path policy independently of saved freshness. Unknown or conflicting exact-opportunity eligibility cannot qualify; no remote label, CV location or saved policy grants legal status or execution authority.
 
+Read [recipient drafts](references/recipient-drafts.md) for employer/vacancy, client/project, network/admission and agency/specific-vacancy contracts. Use the actual recipient, supported content, observed field limits and attributed claim/attachment/portfolio evidence. All prepared drafts remain `not_sent`; draft readiness is separate from opportunity qualification and external authorization. Network admission stays outside recommendation counts.
+
 ## Workspace resolution
 
 Run this skill's `scripts/resolve_workspace.py [--workspace PATH]` when the workspace is uncertain. Precedence is explicit path, current checkout, then private `workspace.local.json` fallback; `workspace.json` is an unbound portable descriptor. Shared references under `references/workspace/` point to exact files in that resolved workspace; private records and CVs are never bundled. Keep automatic skill selection enabled.

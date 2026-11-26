@@ -3,6 +3,7 @@ import copy
 import hashlib
 from pathlib import Path
 from records import application_evidence, load, read_store, related_records, save, timestamp
+from drafts import prepare_draft
 from qualification import brief_from_run, qualify, search_brief, select_search_run
 from profile_config import private_root, private_path, safe_output, cv_manifest_path
 
@@ -38,7 +39,7 @@ def prepare_packet(workdir, job, review, brief, now, language, role, drafts=None
             "identity": {k: job.get(k) for k in ("id", "job_id", "source_job_id", "company", "employer_or_client", "title", "url", "source_url")},
             "prepared_at": now.isoformat(), "preparation_state": "prepared", "submission_state": "not_sent",
             "decision": decision, "cv": cv, "search_brief": copy.deepcopy(brief),
-            "drafts": [{**copy.deepcopy(draft), "state": "not_sent"} for draft in drafts or []],
+            "drafts": [prepare_draft(draft, job["id"], cv, portfolio_evidence, now) for draft in drafts or []],
             "form": {"route": copy.deepcopy(review.get("route", {})), "message_field": review.get("route", {}).get("message_field", "unknown"),
                      "observed_questions": copy.deepcopy(observed_questions or []), "unresolved_answers": [q for q in observed_questions or [] if not q.get("answer_evidence")]},
             "portfolio_evidence": copy.deepcopy(portfolio_evidence or []),

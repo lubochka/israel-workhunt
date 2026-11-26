@@ -40,3 +40,9 @@ employer-overrides.json
 legacy-collector-5f723c0.json
 generate_legacy_brief_fixture.py
 workhunt_prompt.md
+
+draft-request*.json
+local-draft*.json
+coverage-observation*.json
+outcome-events*.json
+source-activity*.json

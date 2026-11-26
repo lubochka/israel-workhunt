@@ -14,6 +14,8 @@ Read the [shared context](references/workspace/docs/skills/WORKHUNT_CONTEXT.md.m
 5. Preserve previous successful observations when a new check fails. Missing upstream is not a closed employer; imported is not verified; an accessible board is not an available application route. Record only actual observations with timestamps.
 6. Report actual changed counts and limitations. Retain attribution and pinned provenance. Never upload CVs, connect accounts, submit applications, replace private overrides, or infer authorization from saved notes.
 
+Read [manual discovery](references/MANUAL_DISCOVERY.md) and the shared 28-source catalog: the original 23 IDs and evidence remain, with Arc, Hacker News, Scalable Path, X-Team and Gun.io added and Guru enriched. Select routes using current candidate settings and the active request. Offline `discovery_routes.py` resolves aliases for source planning only; it neither fetches nor updates health. Generic intake does not count as an opportunity; exact agency vacancy screening remains eligible for the normal checks. A reviewed or attached request template does not invoke a search.
+
 ## Workspace resolution
 
 Run this skill's `scripts/resolve_workspace.py [--workspace PATH]` when the workspace is uncertain. Precedence is explicit path, current checkout, then private `workspace.local.json` fallback; `workspace.json` is an unbound portable descriptor. Shared references under `references/workspace/` point to exact files in that resolved workspace; private records and CVs are never bundled. Keep automatic skill selection enabled.

@@ -11,3 +11,5 @@ Read the private profile/evidence ledger and `docs/skills/WORKHUNT_CONTEXT.md` i
 Read [workflow](references/workflow.md) for this task, then use [record](assets/record.md) for the requested local output. Keep completed records in `.workhunt/`. Do not count this template as a completed check.
 
 Apply the current private country/work-path policy independently of saved freshness. Unknown or conflicting exact-opportunity eligibility cannot qualify; no remote label, CV location or saved policy grants legal status or execution authority.
+
+An exact linked `proposal_observed` form may supply work-eligibility evidence only for a project, with matched ID/client/listing/navigation/evidence/time. Employment needs its own valid application route. Generic network or agency intake is source-access material; an exact agency vacancy at `agency_screening` remains subject to all normal gates.

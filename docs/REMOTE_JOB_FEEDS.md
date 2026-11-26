@@ -1,6 +1,6 @@
 # Remote job and contract sources
 
-Read the authoritative [23-source catalog](../sources/opportunity-sources.json). These are dated reference notes, not active collectors or fresh provider verification. Source selection follows explicit private preferences.
+Read the authoritative [28-source catalog](../sources/opportunity-sources.json). These are dated reference notes, not active collectors or fresh provider verification. Source selection follows explicit private preferences.
 
 ## Himalayas (`himalayas`)
 

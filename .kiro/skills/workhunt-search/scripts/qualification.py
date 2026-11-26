@@ -6,31 +6,9 @@ import re
 from zoneinfo import ZoneInfo
 from records import history_decision, norm, timestamp, url_identity
 from work_eligibility import assess as assess_work_eligibility
+from routes import normalize_route, route_evidence_recorded
 
 LOGIN_LABEL = "Login required; not verified beyond this point"
-
-
-def normalize_route(value):
-    route = copy.deepcopy(value) if isinstance(value, dict) else {}
-    recorded_status = route.get("status") or route.get("decision")
-    route["status"] = {"exact_application_form_verified": "form_observed", "qualified_login": "login_required"}.get(recorded_status, recorded_status)
-    # The legacy qualified-login decision explicitly encoded the exact-vacancy
-    # acceptance conclusion. It still needs recorded evidence.
-    if recorded_status == "qualified_login":
-        route.setdefault("exact_vacancy_accepting_applications", True)
-    route.setdefault("source_url", route.get("exact_job_url") or route.get("url"))
-    route.setdefault("checked_at", route.get("verified_at"))
-    route.setdefault("job_identifier", route.get("job_id_in_page"))
-    return route
-
-
-def route_evidence_recorded(value, allow_proposal=True):
-    """Saved route evidence only; freshness and exact linkage are separate checks."""
-    route = normalize_route(value)
-    return bool(route.get("evidence")) and (
-        route.get("status") == "form_observed"
-        or allow_proposal and route.get("status") == "proposal_observed"
-        or route.get("status") == "login_required" and route.get("exact_vacancy_accepting_applications") is True)
 
 
 EXTENDED_SOURCE_GROUPS = {"employer_registry", "techmap"}
@@ -275,6 +253,8 @@ def qualify(job, review, brief, now, found=None, applied=None, history_index=Non
     score = score_requirements(review.get("requirements", []))
     work_eligibility = assess_work_eligibility(job, review, now, profile)
     hard = list(work_eligibility["hard_exclusions"])
+    if job.get("record_kind") in {"source_access", "network_admission", "generic_screening", "profile", "service"} or job.get("response_mode") in {"network_admission", "generic_agency_screening", "client_invitation"}:
+        hard.append("Source access/admission or generic screening is not an identified opportunity")
     if job.get("active") is False:
         hard.append("Source explicitly marks this posting inactive")
     if review.get("degree_status") == "mandatory_no_alternative":

@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "directory_provenance": {
+    "repository": "https://github.com/engineerapart/TheRemoteFreelancer",
+    "revision": "849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407",
+    "file": "docs/_data/sites.csv",
+    "source_url": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/docs/_data/sites.csv",
+    "contribution": "Resource discovery and channel classification; no runtime code imported",
+    "credit": "Codinronan (originator), Andy Chase (maintainer), as credited by upstream README",
+    "license_declared": "The Unlicense",
+    "license_source": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/LICENSE"
+  },
+  "sources": [],
+  "source_overrides": {},
+  "lifecycle_references": [
+    {
+      "id": "wellfound_reference",
+      "name": "Wellfound (lifecycle reference)",
+      "website": "https://wellfound.com",
+      "aliases": [
+        "AngelList Talent",
+        "Wellfound"
+      ],
+      "selected_for_search": false,
+      "lifecycle_state": "moved",
+      "manual_routes": [],
+      "source_relationships": [
+        {
+          "kind": "renamed_from",
+          "name": "AngelList Talent",
+          "evidence_url": "https://wellfound.com/blog/angellist-talent-is-now-wellfound",
+          "does_not_include": "AngelList Venture"
+        }
+      ],
+      "research_evidence": {
+        "date": "2026-11-26",
+        "references": [
+          "https://wellfound.com/about-us",
+          "https://wellfound.com/blog/angellist-talent-is-now-wellfound"
+        ]
+      }
+    },
+    {
+      "id": "adeva_reference",
+      "name": "Adeva",
+      "website": "https://www.toptal.com/adeva",
+      "aliases": [],
+      "selected_for_search": false,
+      "lifecycle_state": "conditional",
+      "manual_routes": [],
+      "source_relationships": [
+        {
+          "kind": "acquired_by",
+          "target_source_id": "toptal",
+          "date": "2026-05-26",
+          "evidence_url": "https://www.toptal.com/press-center/toptal-announces-acquisition-of-adeva",
+          "same_intake_proven": false
+        }
+      ],
+      "review_reason": "Ownership does not prove identical intake or merge projects"
+    },
+    {
+      "id": "worksome_reference",
+      "name": "Worksome",
+      "website": "https://www.worksome.com/for-talent",
+      "aliases": [],
+      "selected_for_search": false,
+      "lifecycle_state": "repurposed",
+      "manual_routes": [],
+      "response_modes": [
+        "client_invitation"
+      ],
+      "research_evidence": {
+        "date": "2026-11-26",
+        "source_url": "https://www.worksome.com/for-talent",
+        "observation": "FAQ says general talent signup ended in 2023; private client talent pools/invitations remain. Not an open project queue."
+      }
+    }
+  ],
+  "employer_fallbacks": [
+    {
+      "id": "codevalue",
+      "name": "CodeValue",
+      "failed_url": "https://www.codevalue.com/careers",
+      "manual_routes": [
+        {
+          "url": "https://www.codevalue.com/career",
+          "purpose": "Official public recovery route; exact vacancy still needs verification",
+          "access": "public_manual",
+          "automated": false
+        }
+      ],
+      "research_evidence": {
+        "date": "2026-11-26",
+        "method": "parent_public_page_or_isolated_browser_read_only",
+        "observation": "Official singular /career shows position links; prior /careers route unavailable."
+      },
+      "collector_health_updated": false,
+      "tenant_changed": false
+    },
+    {
+      "id": "commit",
+      "name": "CommIT",
+      "failed_url": "https://www.comm-it.com/careers",
+      "manual_routes": [
+        {
+          "url": "https://www.comm-it.com/commit-jobs",
+          "purpose": "Official public recovery route; exact vacancy still needs verification",
+          "access": "public_manual",
+          "automated": false
+        }
+      ],
+      "research_evidence": {
+        "date": "2026-11-26",
+        "method": "parent_public_page_or_isolated_browser_read_only",
+        "observation": "Official career center shows 17 role links; empty messages for individual categories do not make the whole board empty."
+      },
+      "collector_health_updated": false,
+      "tenant_changed": false
+    },
+    {
+      "id": "oktopost",
+      "name": "Oktopost",
+      "failed_url": "https://jobs.lever.co/oktopost",
+      "manual_routes": [
+        {
+          "url": "https://www.oktopost.com/careers/",
+          "purpose": "Official public recovery route; exact vacancy still needs verification",
+          "access": "public_manual",
+          "automated": false
+        }
+      ],
+      "research_evidence": {
+        "date": "2026-11-26",
+        "method": "parent_public_page_or_isolated_browser_read_only",
+        "observation": "Public extractor returned 403 for Lever; parent fresh hidden browser rendered 11 Lever job links. Corporate page also lists roles."
+      },
+      "collector_health_updated": false,
+      "tenant_changed": false
+    },
+    {
+      "id": "finout",
+      "name": "Finout",
+      "failed_url": "https://jobs.ashbyhq.com/finout",
+      "manual_routes": [
+        {
+          "url": "https://jobs.ashbyhq.com/finout",
+          "purpose": "Official public recovery route; exact vacancy still needs verification",
+          "access": "public_manual",
+          "automated": false
+        }
+      ],
+      "research_evidence": {
+        "date": "2026-11-26",
+        "method": "parent_public_page_or_isolated_browser_read_only",
+        "observation": "Raw extraction was a one-line shell; parent fresh hidden browser rendered Open Positions (15) and links."
+      },
+      "collector_health_updated": false,
+      "tenant_changed": false
+    },
+    {
+      "id": "candex",
+      "name": "Candex",
+      "failed_url": "https://jobs.ashbyhq.com/candex",
+      "manual_routes": [
+        {
+          "url": "https://www.candex.com/careers",
+          "purpose": "Official public recovery route; exact vacancy still needs verification",
+          "access": "public_manual",
+          "automated": false
+        }
+      ],
+      "research_evidence": {
+        "date": "2026-11-26",
+        "method": "parent_public_page_or_isolated_browser_read_only",
+        "observation": "Employer page reachable; embedded Ashby frame blank; direct tenant settled on Page not found in fresh hidden browser. Unresolved, no replacement tenant or empty-board claim."
+      },
+      "collector_health_updated": false,
+      "tenant_changed": false
+    }
+  ]
+}

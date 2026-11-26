@@ -193,6 +193,52 @@ class WorkEligibilityTests(OfflineCase):
             self.assertFalse(result["qualified"])
             self.assertEqual(result["work_eligibility_check"]["hard_exclusions"], [])
 
+    def test_network_admission_cannot_pass_even_with_positive_fit_flags(self):
+        self.assertTrue(self.evaluate()["qualified"])
+        self.job["record_kind"] = "source_access"
+        self.job["response_mode"] = "network_admission"
+        result = self.evaluate()
+        self.assertTrue(result["score"]["passes"])
+        self.assertFalse(result["qualified"])
+        self.assertIn("not an identified opportunity", " ".join(result["hard_exclusions"]))
+
+    def test_exact_agency_vacancy_screening_is_not_generic_intake(self):
+        self.job["response_mode"] = "agency_screening"
+        self.assertTrue(self.evaluate()["qualified"])
+        records.save(self.work / "data/jobs.json", {"opportunities": [{**self.job, "review": self.review}]})
+        packet = packets.prepare_packet(self.work, self.job, self.review, qualification.search_brief(self.profile, self.now), self.now, "en", "development", drafts=[{"recipient_type": "agency", "stage": "agency_screening", "text": "Local draft about the exact opening."}])
+        self.assertTrue(packet["decision"]["qualified"])
+        self.assertEqual(packet["drafts"][0]["stage"], "agency_screening")
+        self.assertEqual(packet["submission_state"], "not_sent")
+        for kind in ("source_access", "generic_screening"):
+            self.job["record_kind"] = kind
+            self.assertFalse(self.evaluate()["qualified"])
+        self.job.pop("record_kind")
+        self.job["response_mode"] = "generic_agency_screening"
+        self.assertFalse(self.evaluate()["qualified"])
+
+    def test_linked_project_proposal_form_qualifies_and_wrong_identity_does_not(self):
+        self.job["type"] = "project"
+        form = "https://fixture.invalid/proposal/123456"
+        self.review["route"].update(status="proposal_observed", source_url=form, listing_url=self.job["url"], employer=self.job["company"], navigation_evidence="Exact project Submit Proposal link opens this destination")
+        self.review["work_eligibility"]["source_url"] = form
+        self.assertTrue(self.evaluate()["qualified"])
+        records.save(self.work / "data/jobs.json", {"opportunities": [{**self.job, "review": self.review}]})
+        self.assertTrue(read_page(render.render(self.work))[1]["jobs"][0]["review"]["qualified"])
+        packet = packets.prepare_packet(self.work, self.job, self.review, qualification.search_brief(self.profile, self.now), self.now, "en", "development", drafts=[{"text": "I have attached my CV."}])
+        self.assertTrue(packet["decision"]["qualified"])
+        self.assertEqual(packet["submission_state"], "not_sent")
+        self.assertFalse(packet["drafts"][0]["review"]["ready_for_use"])
+        records.save(self.work / "local-packet.json", packet)
+        self.assertEqual(records.load(self.work / "local-packet.json")["decision"]["work_eligibility_check"]["assessments"][0]["source_url"], form)
+        for change in ({"job_identifier": "other"}, {"employer": "Other client"}, {"navigation_evidence": ""}):
+            review = copy.deepcopy(self.review);review["route"].update(change)
+            self.assertFalse(self.evaluate(review)["checks"]["work_eligibility"])
+        self.job["type"] = "employment"
+        result = self.evaluate()
+        self.assertFalse(result["checks"]["route"])
+        self.assertFalse(result["checks"]["work_eligibility"])
+
     def test_renderer_and_unsent_packet_use_current_preference_not_old_run(self):
         self.review["work_eligibility"]["constraints"] = [self.constraint("work_visa")]
         old_run = {"id": "before-preference", "window_start": (self.now - dt.timedelta(hours=24)).isoformat(), "window_end": self.now.isoformat(), "search_brief": {"work_location_policy": {"exclude_required_foreign_conditions": []}}}

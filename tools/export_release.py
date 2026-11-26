@@ -17,7 +17,7 @@ def inventory(root=ROOT):
         raise ValueError("Stage the reviewed release inventory before export")
     for rel in paths:
         path = root / rel
-        if rel.is_absolute() or ".." in rel.parts or set(rel.parts) & FORBIDDEN_PARTS or rel.name in FORBIDDEN_NAMES or rel.suffix.lower() in FORBIDDEN_SUFFIXES or rel.name.startswith((".env.", "packet-evidence", "packet-authorization", "submission-event")) or rel.suffix.lower() == ".log":
+        if rel.is_absolute() or ".." in rel.parts or set(rel.parts) & FORBIDDEN_PARTS or rel.name in FORBIDDEN_NAMES or rel.suffix.lower() in FORBIDDEN_SUFFIXES or rel.name.startswith((".env.", "packet-evidence", "packet-authorization", "submission-event", "draft-request", "local-draft", "coverage-observation", "outcome-events", "source-activity")) or rel.suffix.lower() == ".log":
             raise ValueError("Private or unsupported export entry: " + str(rel))
         if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(root.resolve()):
             raise ValueError("Export accepts ordinary files inside the release root only: " + str(rel))

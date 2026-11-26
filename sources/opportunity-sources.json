@@ -3,7 +3,7 @@
   "catalog_type": "discovery_source_reference",
   "checked_on": "2026-11-25",
   "purpose": "Discovery references selected by each private profile; no sources enabled by default.",
-  "implementation_status": "reference_catalog_only",
+  "implementation_status": "reference_catalog_and_offline_manual_route_resolution",
   "collector_added": false,
   "scheduled_monitoring_activated": false,
   "credential_access_tested": false,
@@ -576,7 +576,7 @@
       "name": "Guru",
       "website": "https://www.guru.com/",
       "opportunity_kind": "freelance_projects",
-      "discovery_method": "unconfirmed",
+      "discovery_method": "manual_public_project_search_and_quote",
       "endpoints": [],
       "evidence": {
         "status": "access_unverified",
@@ -591,7 +591,62 @@
       "references": [
         "https://www.guru.com/apihelp/help.html"
       ],
-      "guide": "../docs/FREELANCE_PROJECT_SOURCES.md"
+      "guide": "../docs/FREELANCE_PROJECT_SOURCES.md",
+      "priority": "candidate_configured",
+      "channel_roles": [
+        "direct_marketplace"
+      ],
+      "response_modes": [
+        "project_proposal"
+      ],
+      "manual_routes": [
+        {
+          "url": "https://www.guru.com/d/jobs/",
+          "purpose": "Search projects, open exact brief and observe Send a Quote destination",
+          "access": "public_manual",
+          "automated": false
+        },
+        {
+          "url": "https://www.guru.com/how-it-works-freelancer/",
+          "purpose": "Documented scope/payment quote workflow",
+          "access": "public_manual",
+          "automated": false
+        }
+      ],
+      "lifecycle_state": "conditional",
+      "directory_provenance": {
+        "repository": "https://github.com/engineerapart/TheRemoteFreelancer",
+        "revision": "849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407",
+        "file": "docs/_data/sites.csv",
+        "source_url": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/docs/_data/sites.csv",
+        "contribution": "Resource discovery and channel classification; no runtime code imported",
+        "credit": "Codinronan (originator), Andy Chase (maintainer), as credited by upstream README",
+        "license_declared": "The Unlicense",
+        "license_source": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/LICENSE"
+      },
+      "manual_route_evidence": {
+        "date": "2026-11-26",
+        "method": "parent_isolated_browser_read_only",
+        "observation": "Public jobs page rendered 209 results with cards/dates and Send Quote links. Example href /login.aspx?ReturnUrl=work/detail/2122031?apply=true observed only; not followed or authenticated. API documentation 403 remains historical evidence and API capability unverified.",
+        "source_url": "https://www.guru.com/d/jobs/",
+        "vacancy_qualified": false,
+        "quote_submitted": false
+      },
+      "quote_workflow": {
+        "steps": [
+          "Search relevant project terms and open exact client brief",
+          "Inspect outcome, deliverables, country, budget/payment basis and quote availability",
+          "Observe Send Quote navigation without signing in or sending",
+          "Prepare local scope/payment draft; retain unknown rates and current Bid/access cost"
+        ],
+        "bids": "Official guidance describes Bids for quotes; verify actual current cost and invitation exceptions before any authorized spend",
+        "account_access": "unverified",
+        "api_access": "unverified",
+        "references": [
+          "https://www.guru.com/how-it-works-freelancer/"
+        ]
+      },
+      "review_reason": "Apply the configured candidate capabilities, location policy and current source selection; exact opportunity and response availability require separate checks."
     },
     {
       "id": "malt",
@@ -820,6 +875,373 @@
         "https://support.usebraintrust.com/hc/en-us/articles/41239692662807-Where-does-Braintrust-send-payments"
       ],
       "guide": "../docs/FREELANCE_PLATFORM_RESEARCH_2026-11-25.md"
+    },
+    {
+      "id": "arc",
+      "name": "Arc",
+      "website": "https://arc.dev/",
+      "opportunity_kind": "mixed_role_discovery",
+      "discovery_method": "manual_public_search_and_specific_opportunity_review",
+      "priority": "candidate_configured",
+      "endpoints": [],
+      "channel_roles": [
+        "job_board",
+        "vetted_network"
+      ],
+      "response_modes": [
+        "vacancy_application",
+        "network_admission"
+      ],
+      "manual_routes": [
+        {
+          "url": "https://arc.dev/en-il/remote-jobs",
+          "purpose": "Public Israel-filtered discovery; verify exact role country terms",
+          "access": "public_manual",
+          "automated": false,
+          "applicability": {
+            "eligible_countries_any": [
+              "IL"
+            ]
+          }
+        },
+        {
+          "url": "https://arc.dev/w/codementorx",
+          "purpose": "Current identity/rebrand reference, not a vacancy",
+          "access": "public_manual",
+          "automated": false
+        }
+      ],
+      "lifecycle_state": "conditional",
+      "aliases": [
+        "CodementorX",
+        "codementorx.com",
+        "https://codementorx.com"
+      ],
+      "source_relationships": [
+        {
+          "kind": "renamed_from",
+          "name": "CodementorX",
+          "evidence_url": "https://arc.dev/w/codementorx",
+          "does_not_include": "Codementor mentoring service"
+        }
+      ],
+      "directory_provenance": {
+        "repository": "https://github.com/engineerapart/TheRemoteFreelancer",
+        "revision": "849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407",
+        "file": "docs/_data/sites.csv",
+        "source_url": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/docs/_data/sites.csv",
+        "contribution": "Resource discovery and channel classification; no runtime code imported",
+        "credit": "Codinronan (originator), Andy Chase (maintainer), as credited by upstream README",
+        "license_declared": "The Unlicense",
+        "license_source": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/LICENSE"
+      },
+      "research_evidence": [
+        {
+          "date": "2026-11-26",
+          "method": "parent_public_first_party_review",
+          "observation": "Official Israel-filter page exists; it is not blanket hiring or visa clearance. CodementorX became Arc; Codementor mentoring is separate.",
+          "references": [
+            "https://arc.dev/en-il/remote-jobs",
+            "https://arc.dev/w/codementorx"
+          ]
+        }
+      ],
+      "last_verified_on": "2026-11-26",
+      "review_reason": "Apply the configured candidate capabilities, location policy and current source selection; exact opportunity and response availability require separate checks.",
+      "limitations": [
+        "No API/collector implemented for this route.",
+        "Platform admission, payout, timezone and individual role eligibility are separate.",
+        "Network admission/profile creation is not an opportunity."
+      ],
+      "references": [
+        "https://arc.dev/en-il/remote-jobs",
+        "https://arc.dev/w/codementorx"
+      ],
+      "guide": "MANUAL_DISCOVERY.md"
+    },
+    {
+      "id": "hn",
+      "name": "Hacker News hiring",
+      "website": "https://news.ycombinator.com/",
+      "opportunity_kind": "mixed_role_discovery",
+      "discovery_method": "manual_public_search_and_specific_opportunity_review",
+      "priority": "candidate_configured",
+      "endpoints": [],
+      "channel_roles": [
+        "community_hiring_posts"
+      ],
+      "response_modes": [
+        "vacancy_application",
+        "project_proposal"
+      ],
+      "manual_routes": [
+        {
+          "url": "https://news.ycombinator.com/submitted?id=whoishiring",
+          "purpose": "Find actual current Who is hiring thread, then exact hiring comments",
+          "access": "public_manual",
+          "automated": false
+        },
+        {
+          "url": "https://news.ycombinator.com/jobs",
+          "purpose": "Independent job stories; not monthly-thread comments",
+          "access": "public_manual",
+          "automated": false
+        }
+      ],
+      "lifecycle_state": "conditional",
+      "aliases": [],
+      "source_relationships": [],
+      "directory_provenance": {
+        "repository": "https://github.com/engineerapart/TheRemoteFreelancer",
+        "revision": "849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407",
+        "file": "README.md",
+        "source_url": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/README.md",
+        "contribution": "Resource discovery and channel classification; no runtime code imported",
+        "credit": "Codinronan (originator), Andy Chase (maintainer), as credited by upstream README",
+        "license_declared": "The Unlicense",
+        "license_source": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/LICENSE",
+        "discovery_reference": "https://hnhiring.com/"
+      },
+      "research_evidence": [
+        {
+          "date": "2026-11-26",
+          "method": "parent_public_first_party_review",
+          "observation": "Hiring posts have mixed geographic terms. Each exact comment/item has its own ID and creation time; thread date is not comment freshness.",
+          "references": [
+            "https://github.com/HackerNews/API",
+            "https://news.ycombinator.com/item?id=50338728"
+          ]
+        }
+      ],
+      "last_verified_on": "2026-11-26",
+      "review_reason": "Apply the configured candidate capabilities, location policy and current source selection; exact opportunity and response availability require separate checks.",
+      "limitations": [
+        "No API/collector implemented for this route.",
+        "Platform admission, payout, timezone and individual role eligibility are separate.",
+        "Network admission/profile creation is not an opportunity."
+      ],
+      "references": [
+        "https://github.com/HackerNews/API",
+        "https://news.ycombinator.com/item?id=50338728"
+      ],
+      "guide": "MANUAL_DISCOVERY.md"
+    },
+    {
+      "id": "scalable_path",
+      "name": "Scalable Path",
+      "website": "https://www.scalablepath.com/",
+      "opportunity_kind": "mixed_role_discovery",
+      "discovery_method": "manual_public_search_and_specific_opportunity_review",
+      "priority": "candidate_configured",
+      "endpoints": [],
+      "channel_roles": [
+        "vetted_network",
+        "specialty_job_board"
+      ],
+      "response_modes": [
+        "vacancy_application",
+        "network_admission"
+      ],
+      "manual_routes": [
+        {
+          "url": "https://www.scalablepath.com/dot-net/jobs",
+          "purpose": "Specialty .NET job listing; network profile is a separate admission path",
+          "access": "public_manual",
+          "automated": false,
+          "applicability": {
+            "required_stack_any": [
+              "dotnet",
+              ".net"
+            ]
+          }
+        }
+      ],
+      "lifecycle_state": "conditional",
+      "aliases": [],
+      "source_relationships": [],
+      "directory_provenance": {
+        "repository": "https://github.com/engineerapart/TheRemoteFreelancer",
+        "revision": "849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407",
+        "file": "docs/_data/sites.csv",
+        "source_url": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/docs/_data/sites.csv",
+        "contribution": "Resource discovery and channel classification; no runtime code imported",
+        "credit": "Codinronan (originator), Andy Chase (maintainer), as credited by upstream README",
+        "license_declared": "The Unlicense",
+        "license_source": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/LICENSE"
+      },
+      "research_evidence": [
+        {
+          "date": "2026-11-26",
+          "method": "parent_public_first_party_review",
+          "observation": "The .NET page stated no open positions on the scoped parent review. Profile creation is network admission, not a client brief or global absence of work.",
+          "references": [
+            "https://www.scalablepath.com/dot-net/jobs"
+          ]
+        }
+      ],
+      "last_verified_on": "2026-11-26",
+      "review_reason": "Apply the configured candidate capabilities, location policy and current source selection; exact opportunity and response availability require separate checks.",
+      "limitations": [
+        "No API/collector implemented for this route.",
+        "Platform admission, payout, timezone and individual role eligibility are separate.",
+        "Network admission/profile creation is not an opportunity."
+      ],
+      "references": [
+        "https://www.scalablepath.com/dot-net/jobs"
+      ],
+      "guide": "MANUAL_DISCOVERY.md"
+    },
+    {
+      "id": "x_team",
+      "name": "X-Team",
+      "website": "https://x-team.com/",
+      "opportunity_kind": "mixed_role_discovery",
+      "discovery_method": "manual_public_search_and_specific_opportunity_review",
+      "priority": "candidate_configured",
+      "endpoints": [],
+      "channel_roles": [
+        "staffing_agency",
+        "vetted_network"
+      ],
+      "response_modes": [
+        "agency_vacancy",
+        "network_admission"
+      ],
+      "manual_routes": [
+        {
+          "url": "https://jobs.x-team.com",
+          "purpose": "Public job list; use fresh hidden browser if extractor only returns Loading Job Ad",
+          "access": "public_manual",
+          "automated": false
+        },
+        {
+          "url": "https://x-team.com/how-to-get-hired-at-x-team",
+          "purpose": "Hiring/location guidance; not itself a vacancy",
+          "access": "public_manual",
+          "automated": false
+        }
+      ],
+      "lifecycle_state": "conditional",
+      "aliases": [],
+      "source_relationships": [],
+      "directory_provenance": {
+        "repository": "https://github.com/engineerapart/TheRemoteFreelancer",
+        "revision": "849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407",
+        "file": "docs/_data/sites.csv",
+        "source_url": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/docs/_data/sites.csv",
+        "contribution": "Resource discovery and channel classification; no runtime code imported",
+        "credit": "Codinronan (originator), Andy Chase (maintainer), as credited by upstream README",
+        "license_declared": "The Unlicense",
+        "license_source": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/LICENSE"
+      },
+      "research_evidence": [
+        {
+          "date": "2026-11-26",
+          "method": "parent_public_first_party_review",
+          "observation": "Official guidance requires role-specific location/timezone review. Raw job page shell was not evidence of empty inventory.",
+          "references": [
+            "https://jobs.x-team.com",
+            "https://x-team.com/how-to-get-hired-at-x-team"
+          ]
+        },
+        {
+          "date": "2026-11-26",
+          "method": "parent_isolated_browser_read_only",
+          "source_url": "https://jobs.x-team.com/",
+          "observation": "After Loading Job Ad a fresh hidden browser rendered 19 role headings with geographic labels; exact form/fit not verified."
+        }
+      ],
+      "last_verified_on": "2026-11-26",
+      "review_reason": "Apply the configured candidate capabilities, location policy and current source selection; exact opportunity and response availability require separate checks.",
+      "limitations": [
+        "No API/collector implemented for this route.",
+        "Platform admission, payout, timezone and individual role eligibility are separate.",
+        "Network admission/profile creation is not an opportunity."
+      ],
+      "references": [
+        "https://jobs.x-team.com",
+        "https://x-team.com/how-to-get-hired-at-x-team"
+      ],
+      "guide": "MANUAL_DISCOVERY.md"
+    },
+    {
+      "id": "gun_io",
+      "name": "Gun.io",
+      "website": "https://gun.io/",
+      "opportunity_kind": "mixed_role_discovery",
+      "discovery_method": "manual_public_search_and_specific_opportunity_review",
+      "priority": "candidate_configured",
+      "endpoints": [],
+      "channel_roles": [
+        "vetted_network"
+      ],
+      "response_modes": [
+        "network_admission",
+        "project_proposal"
+      ],
+      "manual_routes": [
+        {
+          "url": "https://gun.io/find-work/",
+          "purpose": "Developer admission and matching; inspect exact supplied opportunity separately",
+          "access": "public_manual",
+          "automated": false
+        },
+        {
+          "url": "https://gun.io/faq/",
+          "purpose": "Client constraints and platform process; not a job list",
+          "access": "public_manual",
+          "automated": false
+        }
+      ],
+      "lifecycle_state": "conditional",
+      "aliases": [],
+      "source_relationships": [],
+      "directory_provenance": {
+        "repository": "https://github.com/engineerapart/TheRemoteFreelancer",
+        "revision": "849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407",
+        "file": "docs/_data/sites.csv",
+        "source_url": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/docs/_data/sites.csv",
+        "contribution": "Resource discovery and channel classification; no runtime code imported",
+        "credit": "Codinronan (originator), Andy Chase (maintainer), as credited by upstream README",
+        "license_declared": "The Unlicense",
+        "license_source": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/LICENSE"
+      },
+      "research_evidence": [
+        {
+          "date": "2026-11-26",
+          "method": "parent_public_first_party_review",
+          "observation": "FAQ documents client geography/citizenship/security constraints. Find-work is an admission/matching path; no open role was verified.",
+          "references": [
+            "https://gun.io/find-work/",
+            "https://gun.io/faq/"
+          ]
+        }
+      ],
+      "last_verified_on": "2026-11-26",
+      "review_reason": "Apply the configured candidate capabilities, location policy and current source selection; exact opportunity and response availability require separate checks.",
+      "limitations": [
+        "No API/collector implemented for this route.",
+        "Platform admission, payout, timezone and individual role eligibility are separate.",
+        "Network admission/profile creation is not an opportunity."
+      ],
+      "references": [
+        "https://gun.io/find-work/",
+        "https://gun.io/faq/"
+      ],
+      "guide": "MANUAL_DISCOVERY.md"
     }
-  ]
+  ],
+  "manual_route_guide": "MANUAL_DISCOVERY.md",
+  "manual_route_resolver": "../skills/workhunt-search/scripts/discovery_routes.py",
+  "updated_on": "2026-11-26",
+  "directory_provenance": {
+    "repository": "https://github.com/engineerapart/TheRemoteFreelancer",
+    "revision": "849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407",
+    "file": "docs/_data/sites.csv",
+    "source_url": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/docs/_data/sites.csv",
+    "contribution": "Resource discovery and channel classification; no runtime code imported",
+    "credit": "Codinronan (originator), Andy Chase (maintainer), as credited by upstream README",
+    "license_declared": "The Unlicense",
+    "license_source": "https://github.com/engineerapart/TheRemoteFreelancer/blob/849f6c6c3b080bfbf9cd0722e72a8cfcf5aee407/LICENSE"
+  }
 }

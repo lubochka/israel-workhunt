@@ -28,7 +28,7 @@ def plan(root=ROOT):
     if manifest.get("versions") or manifest.get("historical_references"):
         raise ValueError("Shared CV manifest template must remain empty")
     updates = {}
-    authorities = {"context.md": "docs/skills/WORKHUNT_CONTEXT.md", "playbook.md": "JOB_SEARCH_PLAYBOOK.md", "tracking.md": "docs/skills/JOB_TRACKING.md", "opportunity-sources.json": "sources/opportunity-sources.json", "third-party-notices.md": "THIRD_PARTY_NOTICES.md", "upstream-license.txt": "sources/upstream/israel-job-search/LICENSE", "FREELANCE_PROJECT_SOURCES.md": "docs/FREELANCE_PROJECT_SOURCES.md", "REMOTE_JOB_FEEDS.md": "docs/REMOTE_JOB_FEEDS.md"}
+    authorities = {"MANUAL_DISCOVERY.md": "sources/MANUAL_DISCOVERY.md", "manual-discovery.json": "sources/manual-discovery.json", "context.md": "docs/skills/WORKHUNT_CONTEXT.md", "playbook.md": "JOB_SEARCH_PLAYBOOK.md", "tracking.md": "docs/skills/JOB_TRACKING.md", "opportunity-sources.json": "sources/opportunity-sources.json", "third-party-notices.md": "THIRD_PARTY_NOTICES.md", "upstream-license.txt": "sources/upstream/israel-job-search/LICENSE", "FREELANCE_PROJECT_SOURCES.md": "docs/FREELANCE_PROJECT_SOURCES.md", "REMOTE_JOB_FEEDS.md": "docs/REMOTE_JOB_FEEDS.md"}
     for package in packages(root):
         for dest, source in authorities.items():
             text = (root / source).read_text(encoding="utf-8")

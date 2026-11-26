@@ -1,6 +1,6 @@
 # Freelance and matching sources
 
-Read the authoritative [23-source catalog](opportunity-sources.json). These are dated reference notes, not active collectors or fresh provider verification. Source selection follows explicit private preferences.
+Read the authoritative [28-source catalog](opportunity-sources.json). These are dated reference notes, not active collectors or fresh provider verification. Source selection follows explicit private preferences.
 
 ## Freelancer.com (`freelancer`)
 

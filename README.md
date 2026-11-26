@@ -40,7 +40,7 @@ python tools/install_workhunt_skills.py --home /explicit/sandbox/home --check
 
 The installer uses an explicit destination or this checkout and refuses unowned or locally modified conflicts. It installs thirteen focused skills plus four runtime skills and shared empty references into supported provider roots. It never chooses the current user's home implicitly. See [source and placement map](docs/skills/SOURCE_AND_PLACEMENT_MAP.md).
 
-Shared templates resolve independently of profile existence. Installed packages use an explicit shared path, current checkout, or private local binding; distributed descriptors contain no machine paths. The [runtime contract](docs/WORKHUNT_RUNTIME.md) documents private packet preparation, outcome reports and canonical history. The [source maintenance guide](sources/EMPLOYER_SOURCES.md) describes the pinned 288-board public seed, separate from the 23-source catalog. All sources remain disabled in the empty profile.
+Shared templates resolve independently of profile existence. Installed packages use an explicit shared path, current checkout, or private local binding; distributed descriptors contain no machine paths. The [runtime contract](docs/WORKHUNT_RUNTIME.md) documents private packet preparation, outcome reports and canonical history. The [source maintenance guide](sources/EMPLOYER_SOURCES.md) describes the pinned 288-board public seed, separate from the 28-source catalog. All sources remain disabled in the empty profile.
 
 ## Release preparation
 
