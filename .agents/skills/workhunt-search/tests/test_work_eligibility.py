@@ -15,6 +15,31 @@ import work_eligibility
 
 
 class WorkEligibilityTests(OfflineCase):
+
+    def test_concrete_project_invitation_passes_but_platform_invitation_does_not(self):
+        import discovery_routes
+        self.job.update(type="project", response_mode="client_invitation")
+        candidate = {"record_kind": "opportunity", "type": "project", "response_mode": "client_invitation", "opportunity_id": self.job["id"], "listing_url": self.job["url"], "employer_or_client": self.job["company"], "description_evidence": "Exact supplied paid-project brief"}
+        self.assertTrue(discovery_routes.opportunity_candidate(candidate))
+        self.assertTrue(discovery_routes.opportunity_candidate({**self.job, "review": self.review}))
+        form = "https://fixture.invalid/proposal/123456"
+        self.review["route"].update(status="proposal_observed", source_url=form, listing_url=self.job["url"], employer=self.job["company"], navigation_evidence="Exact invited project opens proposal form")
+        self.review["work_eligibility"]["source_url"] = form
+        self.assertTrue(self.evaluate()["qualified"])
+        records.save(self.work / "data/jobs.json", {"opportunities": [{**self.job, "review": self.review}]})
+        self.assertTrue(read_page(render.render(self.work))[1]["jobs"][0]["review"]["qualified"])
+        packet = packets.prepare_packet(self.work, self.job, self.review, qualification.search_brief(self.profile, self.now), self.now, "en", "development", drafts=[{"recipient_type": "client", "text": "Local project draft"}])
+        self.assertTrue(packet["decision"]["qualified"])
+        self.assertEqual(packet["submission_state"], "not_sent")
+        for kind in ("source_access", "network_admission", "profile"):
+            self.job["record_kind"] = kind
+            self.assertFalse(self.evaluate()["qualified"])
+            self.assertFalse(discovery_routes.opportunity_candidate({**candidate, "record_kind": kind}))
+        self.job["record_kind"] = "opportunity"
+        self.job["type"] = "employment"
+        self.assertFalse(discovery_routes.opportunity_candidate({**candidate, "type": "employment"}))
+        self.assertFalse(self.evaluate()["qualified"])
+
     def test_current_country_governs_geography_without_rewriting_saved_brief(self):
         old_brief = qualification.search_brief(self.profile, self.now)
         unchanged = copy.deepcopy(old_brief)

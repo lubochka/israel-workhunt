@@ -14,6 +14,261 @@ import records
 
 
 class ManualChannelTests(OfflineCase):
+
+    def test_cli_retains_unselected_targets_in_route_ambiguity_checks(self):
+        shared = self.work / "shared catalog"
+        (shared / "sources").mkdir(parents=True)
+        for name in ("opportunity-sources.json", "manual-discovery.json"):
+            (shared / "sources" / name).write_bytes((self.root / "sources" / name).read_bytes())
+        path = shared / "sources/manual-discovery.json"
+        catalog = json.loads(path.read_text('utf-8'))
+        employer = next(row for row in catalog["employer_fallbacks"] if row["id"] == "codevalue")
+        catalog["employer_fallbacks"].append({"id": "synthetic-unselected", "name": "Synthetic Unselected", "manual_routes": copy.deepcopy(employer["manual_routes"])})
+        path.write_text(json.dumps(catalog), encoding='utf-8')
+        observation = {"target_id": "codevalue", "source_url": employer["manual_routes"][0]["url"], "method": "public_page",
+                       "transport_status": "success", "content_kind": "opportunity_list", "observed_count": 2,
+                       "scope_complete": True, "evidence": "Synthetic completed scope"}
+        records.save(self.work / "ambiguous-observation.json", observation)
+        before = {p: p.read_bytes() for p in self.work.rglob('*') if p.is_file()}
+        process = subprocess.run([sys.executable, '-X', 'utf8', '-B', str(Path(routes.__file__)), str(self.work), '--shared-root', str(shared),
+                                  '--employer', 'CodeValue', '--observation', 'ambiguous-observation.json'], capture_output=True, text=True, encoding='utf-8')
+        self.assertEqual(process.returncode, 0, process.stderr)
+        result = json.loads(process.stdout)
+        self.assertEqual(set(result['coverage']), {'codevalue'})
+        self.assertEqual(result['coverage']['codevalue']['status'], 'not_attempted')
+        self.assertEqual(result['coverage']['codevalue']['ignored_observation'], observation)
+        self.assertTrue(result['fallbacks']['codevalue']['next_routes'])
+        self.assertEqual(before, {p: p.read_bytes() for p in self.work.rglob('*') if p.is_file()})
+
+    def test_foreign_malformed_attempts_remain_diagnostic_without_aborting_target(self):
+        source = {"id": "own", "name": "Own", "manual_routes": [{"url": "https://fixture.invalid/jobs", "method": "isolated_browser"}]}
+        observed = {"target_id": "own", "source_url": "https://fixture.invalid/jobs", "transport_status": "blocked", "evidence": "Exact public page blocked"}
+        foreign = [{"target_id": "foreign", "url": "not a URL", "method": []},
+                   {"target_id": "foreign", "url": observed["source_url"], "method": "unsupported"}, None]
+        result = routes.fallback_plan(source, observed, attempted_routes=foreign)
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual([r["url"] for r in result["next_routes"]], [observed["source_url"]])
+        self.assertEqual([r["attempt"] for r in result["ignored_attempts"]], foreign)
+        for method in (None, [], "unsupported"):
+            with self.assertRaises(ValueError):
+                routes.fallback_plan(source, observed, attempted_routes=[{"url": observed["source_url"], "method": method}])
+
+    def binding_observation(self, complete=True):
+        return {"source_id": "arc", "source_url": "https://arc.dev/en-il/remote-jobs",
+                "method": "public_page", "transport_status": "success",
+                "content_kind": "opportunity_list", "observed_count": 2,
+                "scope_complete": complete, "evidence": "Two Arc role cards in this selected scope"}
+
+    def test_target_binding_precedes_complete_partial_and_attempt_handling(self):
+        arc = routes.resolve_source(self.catalog, "Arc")
+        employer = next(row for row in self.catalog["employer_fallbacks"] if row["id"] == "codevalue")
+        expected = employer["manual_routes"]
+        for complete in (True, False):
+            observation = self.binding_observation(complete)
+            for explicit in (True, False):
+                with self.subTest(complete=complete, explicit=explicit):
+                    candidate = copy.deepcopy(observation)
+                    if not explicit:
+                        candidate.pop("source_id")
+                    candidate["attempted_routes"] = [{"url": row["url"], "method": row["method"]} for row in expected]
+                    candidate["resolved_url"] = expected[0]["url"]
+                    result = routes.fallback_plan(employer, candidate, [row["url"] for row in expected])
+                    self.assertEqual(result["status"], "not_attempted")
+                    self.assertEqual([{k: v for k, v in route.items() if k != "applicability_check"} for route in result["next_routes"]], expected[:3])
+                    self.assertFalse(result["binding"]["bound"])
+            own = routes.fallback_plan(arc, observation)
+            self.assertEqual(own["status"], "checked" if complete else "partial")
+            self.assertEqual(own["next_routes"], [])
+
+    def test_cli_mixed_selection_has_target_specific_coverage_and_own_observations(self):
+        path = self.work / "coverage.json"
+        args = [sys.executable, "-X", "utf8", "-B", str(Path(routes.__file__)), str(self.work), "--shared-root", str(self.root),
+                "--source", "Arc", "--employer", "CodeValue", "--observation", str(path)]
+        for complete in (True, False):
+            observation = self.binding_observation(complete)
+            observation.pop("source_id")  # Reproduce exact legacy CLI input too.
+            path.write_text(json.dumps(observation), encoding="utf-8")
+            process = subprocess.run(args, capture_output=True, text=True, encoding="utf-8")
+            self.assertEqual(process.returncode, 0, process.stderr)
+            result = json.loads(process.stdout)
+            self.assertEqual(set(result["coverage"]), {"arc", "codevalue"})
+            self.assertEqual(result["coverage"]["codevalue"]["status"], "not_attempted")
+            self.assertTrue(result["fallbacks"]["codevalue"]["next_routes"])
+            self.assertEqual(result["coverage"]["arc"]["status"], "checked" if complete else "partial")
+        own = {**self.binding_observation(), "employer": "CodeValue", "source_url": "https://www.codevalue.com/career"}
+        own.pop("source_id")
+        path.write_text(json.dumps({"observations": [self.binding_observation(), own]}), encoding="utf-8")
+        process = subprocess.run(args, capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(process.returncode, 0, process.stderr)
+        result = json.loads(process.stdout)
+        self.assertEqual(result["coverage"]["codevalue"]["status"], "checked")
+        self.assertEqual(result["fallbacks"]["codevalue"]["next_routes"], [])
+        # Two scopes for one target must not be silently selected or called whole-board coverage.
+        path.write_text(json.dumps({"observations": [self.binding_observation(), self.binding_observation(False)]}), encoding="utf-8")
+        process = subprocess.run(args, capture_output=True, text=True, encoding="utf-8")
+        self.assertNotEqual(process.returncode, 0)
+        self.assertIn("Multiple observations for target arc", process.stderr)
+
+    def test_binding_aliases_exact_navigation_and_identity_conflicts(self):
+        source = routes.resolve_source(self.catalog, "Arc")
+        observation = {**self.binding_observation(), "source_id": "CodementorX"}
+        self.assertEqual(routes.fallback_plan(source, observation)["status"], "checked")
+        detail = "https://arc.dev/remote-jobs/details/exact-fixture"
+        linked = {**observation, "source_url": detail, "content_kind": "opportunity_detail",
+                  "navigation": {"from_url": observation["source_url"], "to_url": detail, "evidence": "Observed exact role link from Arc list"}}
+        self.assertEqual(routes.fallback_plan(source, linked)["status"], "checked")
+        for change in ({"source_id": "unknown"}, {"employer": "CodeValue"}, {"source_url": "https://arc.dev/unrelated"}, {"evidence": " "}, {"source_id": []}):
+            with self.subTest(change=change):
+                result = routes.fallback_plan(source, {**observation, **change})
+                self.assertEqual(result["status"], "not_attempted")
+                self.assertTrue(result["next_routes"])
+        bad = copy.deepcopy(linked); bad["navigation"]["to_url"] = "https://arc.dev/other"
+        self.assertEqual(routes.fallback_plan(source, bad)["status"], "not_attempted")
+
+    def test_binding_never_uses_hostname_or_drops_functional_queries(self):
+        base = "https://jobs.ashbyhq.com/fixture"
+        source = {"id": "one", "name": "One", "manual_routes": [{"url": base+"?embed=js", "method": "isolated_browser"}]}
+        observation = {**self.binding_observation(), "source_id": "one", "source_url": base}
+        self.assertEqual(routes.fallback_plan(source, observation)["status"], "not_attempted")
+        observation["source_url"] = base + "?embed=js&utm_source=fixture"
+        self.assertEqual(routes.fallback_plan(source, observation)["status"], "checked")
+        shared = {**source, "id": "two", "name": "Two"}
+        self.assertEqual(routes.fallback_plan(source, observation, targets=[source, shared])["status"], "not_attempted")
+        shared = {**shared, "name": "One", "manual_routes": [{"url": "https://other.invalid/jobs", "method": "public_page"}]}
+        self.assertEqual(routes.fallback_plan(source, {**observation, "source_id": "One"}, targets=[source, shared])["status"], "not_attempted")
+        observation["source_url"] = "https://jobs.ashbyhq.com/other?embed=js"
+        self.assertEqual(routes.fallback_plan(source, observation)["status"], "not_attempted")
+
+    def test_foreign_attempt_identity_and_redirect_do_not_consume_own_routes(self):
+        source = routes.resolve_source(self.catalog, "Arc")
+        observation = {**self.binding_observation(), "transport_status": "blocked"}
+        browser = {"source_id": "CodeValue", "url": observation["source_url"], "method": "isolated_browser"}
+        plan = routes.fallback_plan(source, observation, profile={"configured": True, "eligible_countries": ["IL"]}, attempted_routes=[browser, {"url": "https://unrelated.invalid/list", "resolved_url": observation["source_url"], "method": "isolated_browser"}])
+        self.assertIn((observation["source_url"], "isolated_browser"), [(r["url"], r["method"]) for r in plan["next_routes"]])
+        self.assertEqual(len(plan["ignored_attempts"]), 2)
+        own = {"url": observation["source_url"], "resolved_url": source["manual_routes"][-1]["url"], "method": "isolated_browser"}
+        plan = routes.fallback_plan(source, observation, profile={"configured": True, "eligible_countries": ["IL"]}, attempted_routes=[own])
+        self.assertNotIn((observation["source_url"], "isolated_browser"), [(r["url"], r["method"]) for r in plan["next_routes"]])
+        self.assertEqual(plan["ignored_attempts"], [])
+
+    def test_original_catalog_website_only_source_binds_exact_anchor_or_navigation(self):
+        source = routes.resolve_source(self.catalog, "Upwork")
+        self.assertFalse(source.get("manual_routes"))
+        observed = {**self.binding_observation(), "source_id": "upwork", "source_url": source["website"]}
+        self.assertEqual(routes.fallback_plan(source, observed)["status"], "checked")
+        listing = source["website"].rstrip("/") + "/jobs/exact-fixture"
+        paired = {**observed, "source_url": listing,
+                  "navigation": {"from_url": source["website"], "to_url": listing, "evidence": "Observed this exact public listing from the catalog anchor"}}
+        self.assertEqual(routes.fallback_plan(source, paired)["status"], "checked")
+        for change in ({"source_id": "arc"}, {"navigation": {}}, {"source_url": "https://unrelated.invalid/jobs/exact-fixture"}):
+            self.assertEqual(routes.fallback_plan(source, {**paired, **change})["status"], "not_attempted")
+
+    def test_partial_continuation_needs_real_count_and_nonblank_scope_evidence(self):
+        source = {"manual_routes": [{"url": "https://fixture.invalid/jobs", "method": "isolated_browser"}]}
+        working = {"transport_status": "success", "content_kind": "opportunity_list", "observed_count": 2,
+                   "source_url": "https://fixture.invalid/jobs", "evidence": "Two real cards and another page", "scope_complete": False}
+        self.assertEqual(routes.fallback_plan(source, working)["next_action"], "continue_selected_route_coverage")
+        for change in ({"observed_count": True}, {"observed_count": "2"}, {"observed_count": -1}, {"observed_count": None},
+                       {"source_url": " "}, {"evidence": " "}, {"content_kind": "js_shell"}):
+            self.assertNotIn("next_action", routes.fallback_plan(source, {**working, **change}))
+        for attempt in ({"url": working["source_url"]}, {"url": working["source_url"], "method": []}):
+            with self.assertRaises(ValueError):
+                routes.fallback_plan(source, {**working, "transport_status": "blocked"}, attempted_routes=[attempt])
+
+    def test_scoped_method_alternatives_preserve_positional_profile_and_recompute(self):
+        matching = {"configured": True, "eligible_countries": ["IL"], "search_brief": {"required_stack": ["dotnet"]}}
+        other = {"configured": True, "eligible_countries": ["CA"], "search_brief": {"required_stack": ["python"]}}
+        source = routes.select_sources(self.catalog, ["arc"], matching)[0]
+        scoped = "https://arc.dev/en-il/remote-jobs"
+        allowed = routes.fallback_plan(source, {"transport_status": "blocked"}, [scoped], matching)
+        self.assertIn((scoped, "isolated_browser"), [(r["url"], r["method"]) for r in allowed["next_routes"]])
+        for profile in (other, {}):
+            blocked = routes.fallback_plan(source, {"transport_status": "blocked"}, [], profile)
+            self.assertNotIn(scoped, [r["url"] for r in blocked["next_routes"]])
+            self.assertEqual(len(blocked["unrecommended_scoped_routes"]), 2)
+
+    def test_supplement_preserves_seven_employer_routes_and_historical_limits(self):
+        rows = {r["id"]: r for r in self.catalog["employer_fallbacks"]}
+        self.assertEqual(len(rows), 7)
+        self.assertTrue({"ness", "the_trade_desk", "candex"} <= rows.keys())
+        candex = rows["candex"]
+        self.assertEqual((candex["manual_routes"][0]["url"], candex["manual_routes"][0]["method"]),
+                         ("https://jobs.ashbyhq.com/candex?embed=js", "isolated_browser"))
+        self.assertTrue(candex["research_history"])
+        self.assertEqual(candex["research_evidence"]["named_role_links"], 5)
+        self.assertEqual(candex["research_evidence"]["talent_pool_rows"], 1)
+        for row in rows.values():
+            for route in row["manual_routes"]:
+                self.assertIn(route["method"], routes.ROUTE_METHODS)
+
+    def test_invitation_and_hn_required_identity_fields_cannot_be_whitespace(self):
+        project = {"type": "project", "response_mode": "client_invitation", "id": "project:1", "url": "https://fixture.invalid/1",
+                   "company": "Fixture Client", "description": "A concrete paid project"}
+        self.assertTrue(routes.opportunity_candidate(project))
+        for field in ("id", "url", "company", "description"):
+            self.assertFalse(routes.opportunity_candidate({**project, field: " "}))
+        alias = {"id": "ats:1", "url": "https://fixture.invalid/1", "employer": "Fixture", "source_job_id": "req1", "identity_evidence": "Exact linked requisition"}
+        item = {"id": 10, "time": 1700000000, "type": "comment", "parent": 1}
+        for field in alias:
+            with self.assertRaises(ValueError):
+                routes.hn_candidate(item, 1, {**alias, field: " "})
+        with self.assertRaises(ValueError):
+            routes.hn_candidate(item, 1, {**alias, "employer_or_client": "Different client"})
+
+    def test_hn_alias_connects_reported_and_suppressed_employer_requisition_after_reload(self):
+        item = {"id": 8801, "parent": 1, "time": 1700000000, "type": "comment", "text": "Employer's exact opening"}
+        alias = {"id": "employer:public-A", "url": "https://employer.invalid/openings/A", "employer": "Fixture Employer", "source_job_id": "REQ-42", "identity_evidence": "Exact employer requisition REQ-42 linked in this hiring comment"}
+        candidate = routes.hn_candidate(item, 1, alias)
+        prior = {"id": "supplier:old-B", "url": "https://supplier.invalid/jobs/B", "company": "Fixture Employer", "source_job_id": "REQ-42", "reported_at": "2026-01-01T12:00:00Z"}
+        found, applied = {"opportunities": [prior]}, {"records": []}
+        self.assertEqual(records.history_decision(candidate, found, applied)["state"], "previously_reported")
+        applied["records"] = [{**prior, "suppress_from_new_results": True}]
+        records.save(self.work / "data/jobs.json", {"opportunities": [candidate]})
+        records.save(self.work / "data/applied_jobs.json", applied)
+        saved_found, saved_applied = records.read_store(self.work)
+        self.assertEqual(records.history_decision(saved_found["opportunities"][0], saved_found, saved_applied)["state"], "suppressed")
+        self.assertEqual(candidate["source_aliases"][0]["employer"], alias["employer"])
+        self.assertEqual(candidate["source_aliases"][0]["identity_evidence"], alias["identity_evidence"])
+        for empty in (None, "", " "):
+            normalized = routes.hn_candidate(item, 1, {**alias, "company": empty, "employer_or_client": empty})
+            self.assertEqual(records.history_decision(normalized, found, {"records": []})["state"], "previously_reported")
+        for wrong in ({"company": "Unrelated Employer"}, {"source_url": "https://unrelated.invalid/jobs/999"}):
+            with self.assertRaises(ValueError):
+                routes.hn_candidate(item, 1, {**alias, **wrong})
+        other = {**prior, "source_job_id": "REQ-99"}
+        self.assertEqual(records.history_decision(candidate, {"opportunities": [other]}, {"records": []})["state"], "new")
+
+    def test_fallback_attempts_are_method_specific_and_legacy_urls_do_not_hide_browser(self):
+        url = "https://jobs.fixture.invalid/team"
+        source = {"manual_routes": [{"url": url, "method": "public_page"}, {"url": url, "method": "isolated_browser"}, {"url": "https://employer.invalid/careers", "method": "public_page"}]}
+        failed = {"transport_status": "blocked", "source_url": url, "method": "public_page", "evidence": "Extractor403"}
+        plan = routes.fallback_plan(source, failed, [url])
+        self.assertIn((url, "isolated_browser"), [(r["url"], r["method"]) for r in plan["next_routes"]])
+        self.assertNotIn((url, "public_page"), [(r["url"], r["method"]) for r in plan["next_routes"]])
+        both = routes.fallback_plan(source, failed, attempted_routes=[{"url": url, "method": "public_page"}, {"url": url, "method": "isolated_browser"}])
+        self.assertNotIn(url, [r["url"] for r in both["next_routes"]])
+        no_legacy = routes.fallback_plan(source, failed)
+        self.assertNotIn((url, "public_page"), [(r["url"], r["method"]) for r in no_legacy["next_routes"]])
+        working = {**failed, "transport_status": "success", "content_kind": "opportunity_list", "observed_count": 10, "scope_complete": False, "evidence": "Ten actual cards and next-page link"}
+        continuation = routes.fallback_plan(source, working)
+        self.assertEqual(continuation["next_routes"], [])
+        self.assertEqual(continuation["next_action"], "continue_selected_route_coverage")
+        self.assertEqual(routes.fallback_plan(source, {**working, "scope_complete": True})["next_routes"], [])
+
+    def test_functional_query_and_redirect_attempts_remain_distinct_without_loops(self):
+        root = "https://jobs.ashbyhq.com/fixture"
+        embed = root + "?embed=js"
+        corporate = "https://www.fixture.invalid/site/careers/"
+        source = {"website": "https://www.fixture.invalid/careers", "manual_routes": [{"url": root, "method": "isolated_browser"}, {"url": embed, "method": "isolated_browser"}, {"url": corporate, "method": "public_page"}]}
+        blocked = {"transport_status": "failed", "source_url": root, "method": "isolated_browser", "evidence": "Page not found"}
+        plan = routes.fallback_plan(source, blocked, attempted_routes=[{"url": "https://www.fixture.invalid/careers", "resolved_url": corporate, "method": "public_page"}])
+        self.assertEqual([(r["url"], r["method"]) for r in plan["next_routes"]], [(embed, "isolated_browser")])
+        self.assertNotEqual(routes.route_attempt_key(corporate+"?ashby_jid=one"), routes.route_attempt_key(corporate+"?ashby_jid=two"))
+        self.assertEqual(routes.route_attempt_key(embed+"&utm_source=tracker"), routes.route_attempt_key(embed))
+        done = routes.fallback_plan(source, blocked, attempted_routes=[{"url": corporate, "method": "public_page"}, {"url": embed, "method": "isolated_browser"}])
+        self.assertTrue(done["exhausted"])
+        self.assertEqual(done["next_routes"], [])
+
     def test_scoped_historical_routes_require_matching_explicit_preferences(self):
         matching = copy.deepcopy(self.profile)
         matching["eligible_countries"] = ["IL"]
@@ -62,7 +317,7 @@ class ManualChannelTests(OfflineCase):
 
     def test_fallback_unique_normalized_routes_and_blank_evidence(self):
         source = {"manual_routes": [{"url": value} for value in ["https://fixture.invalid/a/", "https://fixture.invalid/a", "https://www.fixture.invalid/a", "https://fixture.invalid/b", "https://fixture.invalid/c", "https://fixture.invalid/d"]]}
-        blocked = {"transport_status": "blocked"}
+        blocked = {"transport_status": "blocked", "source_url": "https://fixture.invalid/a", "evidence": "Recorded exact route failure"}
         plan = routes.fallback_plan(source, blocked)
         self.assertEqual(len(plan["next_routes"]), 3)
         self.assertEqual(len({routes.source_key(r["url"]) for r in plan["next_routes"]}), 3)
@@ -136,14 +391,15 @@ class ManualChannelTests(OfflineCase):
         self.assertEqual(routes.coverage_observation(mixed)["status"], "checked")
         empty = {**base, "content_kind": "opportunity_list", "explicit_empty_evidence": "No .NET positions", "evidence": "Completed exact .NET category, no pagination"}
         self.assertEqual(routes.coverage_observation(empty)["status"], "checked_empty")
-        self.assertEqual(routes.fallback_plan(routes.resolve_source(self.catalog, "scalable_path"), empty)["next_routes"], [])
+        scalable = routes.resolve_source(self.catalog, "scalable_path")
+        self.assertEqual(routes.fallback_plan(scalable, {**empty, "source_id": "scalable_path", "source_url": scalable["manual_routes"][0]["url"]})["next_routes"], [])
 
     def test_documented_fallbacks_bounded_and_cli_does_not_execute(self):
         source = routes.resolve_source(self.catalog, "guru")
         failed = {"transport_status": "blocked", "source_url": source["manual_routes"][0]["url"], "evidence": "Extractor403"}
         plan = routes.fallback_plan(source, failed, [failed["source_url"]])
         self.assertEqual(plan["max_attempts_per_route"], 1)
-        self.assertNotIn(failed["source_url"], [row["url"] for row in plan["next_routes"]])
+        self.assertNotIn((failed["source_url"], "public_page"), [(row["url"], row["method"]) for row in plan["next_routes"]])
         self.assertFalse(plan["executes_network"])
         process = subprocess.run([sys.executable, "-X", "utf8", "-B", str(Path(routes.__file__)), str(self.root), "--source", "CodementorX", "--source", "Arc", "--employer", "CodeValue"], capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(process.returncode, 0, process.stderr)
@@ -159,7 +415,7 @@ class ManualChannelTests(OfflineCase):
         self.assertEqual(row["id"], "hn:42")
         self.assertEqual(row["thread_id"], 1)
         self.assertEqual(records.timestamp(row["publication_events"][0]["at"]).timestamp(), item["time"])
-        self.assertEqual(row["source_aliases"], [alias])
+        self.assertEqual(row["source_aliases"], [{**alias, "company": alias["employer"]}])
         self.assertFalse(row["description_complete"])
         self.assertIsNone(row["refresh_evidence"])
         self.assertIsNone(routes.hn_candidate(item, 999))
@@ -187,6 +443,28 @@ class ManualChannelTests(OfflineCase):
 
 
 class DraftQualityTests(OfflineCase):
+
+    def test_canonical_upload_event_reused_unchanged_in_draft_review(self):
+        import packets
+        now = dt.datetime.now(dt.timezone.utc)
+        event = {"status": "uploaded", "opportunity_id": "job:1", "sha256": "hash", "at": now.isoformat(), "evidence": "Synthetic exact-file upload observation; no external upload", "authorization": "Fixture-only authorization"}
+        packets.record_submission_event(self.work, {"id": "job:1"}, event)
+        _, applied = records.read_store(self.work)
+        saved = applied["records"][0]["submission_events"][0]
+        self.assertEqual(saved, event)
+        draft = self.draft(text="I have attached my CV.")
+        draft.update(attachment_evidence=saved, attachment_intended=True, attachment_quality={"content_reviewed": True, "render_reviewed": True, "role_language_confirmed": True, "no_unresolved_material_facts": True, "evidence": "Fixture exact-file content/layout review", "version_id": "current", "sha256": "hash"})
+        cv = {"current_sha256": "hash", "file_status": "hash_matches", "version_id": "current", "ready_to_attach": True, "content_reviewed": True, "unresolved_facts": [], "content_review": {"status": "reviewed", "sha256": "hash", "evidence": "Synthetic reviewed content"}}
+        result = drafts.prepare_draft(draft, "job:1", cv, now=now)
+        self.assertTrue(result["review"]["ready_for_use"], result)
+        self.assertTrue(result["attachment_check"]["observed_uploaded"])
+        self.assertEqual(result["state"], "not_sent")
+        self.assertFalse(records.application_evidence(applied["records"][0])["ever_applied"])
+        for wrong in ({"opportunity_id": "job:other"}, {"sha256": "wrong"}, {"at": (now+dt.timedelta(days=1)).isoformat()}, {"status": "prepared"}, {"authorization": ""}, {"authorization": " "}, {"evidence": " "}, {"at": now.replace(tzinfo=None).isoformat()}):
+            with self.subTest(wrong=wrong):
+                altered = copy.deepcopy(draft);altered["attachment_evidence"].update(wrong)
+                self.assertFalse(drafts.prepare_draft(altered, "job:1", cv, now=now)["review"]["ready_for_use"])
+
     def test_blank_evidence_and_contradictory_or_stale_attachment_quality(self):
         for change in ({"recipient_evidence": " "}, {"content_evidence": {k: "\t" for k in drafts.MODES["employer"]["parts"]}}, {"claim_review": {**self.draft()["claim_review"], "evidence": " "}}):
             self.assertFalse(drafts.prepare_draft({**self.draft(), **change}, "job:1")["review"]["ready_for_use"])
@@ -232,7 +510,7 @@ class DraftQualityTests(OfflineCase):
         cv = {"version_id": "synthetic-version", "current_sha256": "hash", "file_status": "hash_matches", "ready_to_attach": True, "content_reviewed": True, "unresolved_facts": [], "content_review": {"status": "reviewed", "sha256": "hash", "evidence": "Reviewed synthetic version"}}
         draft = self.draft(text="I have attached my CV.")
         self.assertFalse(drafts.prepare_draft(draft, "job:1", cv)["review"]["ready_for_use"])
-        draft["attachment_evidence"] = {"opportunity_id": "job:1", "sha256": "hash", "status": "uploaded_observed", "at": now.isoformat(), "evidence": "Exact file visible in authorized upload control"}
+        draft["attachment_evidence"] = {"opportunity_id": "job:1", "sha256": "hash", "status": "uploaded_observed", "at": now.isoformat(), "evidence": "Exact file visible in authorized upload control", "authorization": "Synthetic fixture authorization"}
         self.assertTrue(drafts.prepare_draft(draft, "job:1", cv, now=now)["review"]["ready_for_use"])
         for change in ({"opportunity_id": "other"}, {"sha256": "other"}, {"status": "prepared"}, {"at": (now+dt.timedelta(days=1)).isoformat()}):
             bad = copy.deepcopy(draft);bad["attachment_evidence"].update(change)

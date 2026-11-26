@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from records import history_decision, norm, timestamp, url_identity
 from work_eligibility import assess as assess_work_eligibility
 from routes import normalize_route, route_evidence_recorded
+from opportunity_types import source_access_record
 
 LOGIN_LABEL = "Login required; not verified beyond this point"
 
@@ -253,7 +254,7 @@ def qualify(job, review, brief, now, found=None, applied=None, history_index=Non
     score = score_requirements(review.get("requirements", []))
     work_eligibility = assess_work_eligibility(job, review, now, profile)
     hard = list(work_eligibility["hard_exclusions"])
-    if job.get("record_kind") in {"source_access", "network_admission", "generic_screening", "profile", "service"} or job.get("response_mode") in {"network_admission", "generic_agency_screening", "client_invitation"}:
+    if source_access_record(job, review):
         hard.append("Source access/admission or generic screening is not an identified opportunity")
     if job.get("active") is False:
         hard.append("Source explicitly marks this posting inactive")

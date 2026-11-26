@@ -1,6 +1,97 @@
 # Current release validation
 
-## Public prompt correction — 2026-11-27
+## Observation binding acceptance — 2026-11-27
+
+Current plan: `5964227c0d151558f30305e97524e77bc4c668f2`, pinned source `31da81d4bfef8fc6dfccd1f3f6687890014d0831`. This selective reusable delta is applied on top of the preceding staged runtime repair tree `44074bc1ea4ffbf152a95ffb492cdc8d42f89b76`, without resetting it or importing private source ancestry. The public target base for this combined update is `19cf13f9bf3722727cc398f76a7178c5653bce3e`. Both source jobs and applied-history records changed independently; neither file, its history nor populated observation diagnostics was copied, written or reverted. This worker performed only read-only source Git inspection. Stored source QA counts are historical, not this release's acceptance.
+
+`observation_binding`, `target_coverage` and `select_observation` now bind supplied evidence before completion, pagination and consumed attempts. Every explicit ID/alias must resolve uniquely and consistently. A legacy unique exact configured route/catalog website can bind without an ID; an unconfigured detail needs explicit identity and exact paired navigation with nonblank evidence. Hosts, prefixes, functional-query variants and ambiguous or conflicting identity/URL/redirect evidence do not establish ownership. Unbound targets remain `not_attempted` with applicable routes intact. Once the parent observation binds, each attempt is bound independently; malformed foreign attempts remain diagnostic rather than aborting the target. Bound own attempts still require explicit supported methods.
+
+CLI `coverage` and `fallbacks` are keyed by target ID. Single observations cover only their own target; independent arrays retain one bounded observation per target. Duplicate candidate observations are rejected, not merged or selected arbitrarily. Full catalog, lifecycle and employer targets participate in ambiguity checks even when unselected. Tests preserve separate scope evidence, private input isolation and unchanged files. Binding is a structural check of supplied evidence, not factual verification, whole-board coverage or permission.
+
+The public fallback signature still accepts the fourth positional `profile`; `attempted_routes` and `targets` remain keyword-only. Shared catalogs resolve independently of private observation/profile paths. Candidate-scoped applicability is recomputed; nonblank evidence and exact integer counts, method/query/redirect identities, bounded alternatives, HN alias/history, concrete invitations, canonical upload/quality and all earlier generic/private gates remain.
+
+Only the reusable binding paragraph was added to the complete English public prompt. Its reviewed SHA-256 is now `23ea2d4ecb633d7513b7b380be720ba6c0450a73369b9fdf1f11ffd2f2dc493d`. Exact-root, public-marker and reviewed-hash checks still reject personalized/unreviewed/nested prompt copies. Filled runtime diagnostics remain private: named `observation-binding-*` artifacts are ignored/rejected, and the exporter recursively rejects `binding`, `ignored_observation`, `ignored_attempts` and `other_observations` fields in distributed JSON, including renamed nested reports. Before this guard, inspection found none of these keys in existing public JSON; empty templates/public metadata remain exportable. Python synthetic test dictionaries and schema prose remain allowed. No actual source diagnostic artifact was inspected or copied.
+
+All behavioral, prompt, exporter, guidance and generated-package edits were completed before the final suite. The existing interpreter ran:
+
+```console
+python -X utf8 -B -m unittest discover -s skills/workhunt-search/tests -v
+python -X utf8 -B tools/refresh_workhunt_references.py --check
+```
+
+**221 tests in 71.584 seconds, OK, exit 0** (`workhunt-agpl3-binding-suite-1.log`), with no concurrent target writes. Ten methods were added to the preceding 211: six adapted source binding cases, malformed-foreign-attempt isolation, CLI unselected-target ambiguity, and two export privacy cases. The full suite includes 39 channel/draft/outcome methods, 18 eligibility, nine legacy-context, four profile-mapping, five prompt/export methods and prior setup/manifest/installer/history/adapter checks. These are test methods, not independent reviews. Focused final checks passed **44 tests in 3.295 seconds**, OK (`workhunt-agpl3-binding-focused-3.log`). Earlier focused 37/43-method checks preceded the final added coverage and are not the final acceptance. No live job network, browser, account, submission or dependency installation was used.
+
+Parent review identified that method validation initially preceded binding a structured attempt; foreign malformed attempts could therefore interrupt a valid target. Binding now precedes own-method validation, with explicit regression coverage. Parent after-probes passed five binding groups, including private CLI path protection and malformed foreign input, and all four preceding runtime repair groups. Evidence: `workhunt-agpl3-parent-binding-probes.json` and `workhunt-agpl3-parent-runtime-probes.json`. These are parent checks, not a second worker evaluation. The preceding failed overlapping 211-test run and stable 211/65-test handoff remain recorded below; none is relabeled as the current 221-test result.
+
+Owned-manifest refresh/check passes **17 packages, zero pending shared changes**. Final candidate inspection finds **1224 ordinary UTF-8 text files**, **304 expected files per provider / 912 exact byte comparisons**, zero extras, and no scoped privacy, syntax, local-link or English-prose/comment/docstring findings. All 218 JSON files were checked recursively for private diagnostic fields. Eight credential-URL matches are pre-existing negative synthetic tests. Nine profile examples, empty manifests and unbound descriptors retain the generic contract. The 28-source catalog, seven supplemental employer records, 288-board seed/snapshot, canonical GNU license, MIT notice and synthetic legacy fixture are unchanged from the preceding staged slice. Dated source-access observations were not rechecked. Pattern scans are bounded, not a proof against every unknown secret.
+
+The preceding 1223-file export matched every path and byte hash in both staged tree `44074bc1ea4ffbf152a95ffb492cdc8d42f89b76` and the preserved preceding export proof. After verifying resolved task-owned paths, it was moved intact to a temporary backup; no unexpected user files were overwritten or deleted. The refreshed sibling `workhunt-agpl3-export` contains **1224 files** equal to the inspected candidate, without `.git`, `.workhunt`, private original prompt/fixture/generator or completed user diagnostics.
+
+From the clean export's test directory:
+
+```console
+python -X utf8 -B -m unittest test_manual_channels test_work_eligibility test_legacy_brief_context test_release.ProfileMappingTests test_prompt_export -v
+```
+
+**75 tests in 7.676 seconds, OK, exit 0** (`workhunt-agpl3-binding-export-tests.log`): 39 channel/draft/outcome, 18 eligibility, nine legacy-context, four profile-mapping and five prompt/export methods. This includes the exact source binding cases adapted to synthetic private workspaces, plus privacy and preserved public-contract regressions. All 1224 file hashes remained unchanged afterward. The export contains no Git history or private generator; prompt tests create disposable Git inventories elsewhere. Repeated checks are not independent reviews.
+
+Only this verified validation file was synchronized afterward. Complete candidate/export paths and bytes equal all staged Git inventory/blobs; cached `git diff --check` exits zero and no unstaged paths remain. Exact index tree and evidence are external in `workhunt-agpl3-binding-export-proof.json`, `workhunt-agpl3-binding-final-audit.json` and `workhunt-agpl3-binding-handoff.json`, avoiding circular self-hash claims. Only preparation README/validation changed after the final full suite. The combined update is staged for parent publication; the worker made no commit or push.
+
+Work order: `/root/agpl3_executor`, requested `gpt-6-astra/xhigh`; exact runtime model/effort metadata unavailable. `mode_verified_from_work_order=true` proves only the accepted request. External `workhunt-agpl3-binding-work-order.json` records the pin and metadata. The worker implemented directly without nested delegation or questions and performs no commit/push. Parent review/public-main publication is authorized and follows the combined staged handoff. Existing MIT/ODbL/Unlicense attribution and Job Hunt Kit sharing evidence remain; explicit AGPL relicensing rights for inherited Kit portions remain unresolved, as described below and in the notices.
+
+## Earlier bounded and historical evidence
+
+The sections below describe their named earlier states, not executions repeated for this binding update. The immediately preceding runtime repair was staged and exported but not separately published before this continuation. Older pending-publication language and prompt hashes describe only those earlier states.
+
+## Preceding runtime repair acceptance — 2026-11-27
+
+This update implements the reusable repairs retained by plan `cbd4edcdfa32f34d26f8cbaca604f6c9fad77f49` and pinned source `21e818aebffc553f9dadaf0214b6969da85dd962`. Starting public target commit: `19cf13f9bf3722727cc398f76a7178c5653bce3e`. The selected runtime changes originated at `be9fba8493a05330768691f8c3b76f8d36ce5c31`; later source changes to private `data/jobs.json` were not imported or reverted. The source was read only with pinned Git blob/diff commands; no source checkout, index, history or private record was written. Concurrent source changes are outside a global byte-preservation claim.
+
+Four repairs are applied in live public runtime paths:
+
+- Fallback planning distinguishes supported method plus functional URL, preserving query parameters and observed redirects. Legacy URL-only attempts mean `public_page`; structured attempts require an explicit method. Completed checked/checked-empty scopes stop fallback, while a nonempty evidenced partial list continues the selected route. Boolean/malformed counts and blank evidence cannot establish continuation. The fourth positional `profile` argument, candidate applicability recomputation, unique maximum-three alternatives and no-network/no-health boundary remain.
+- Shared `opportunity_types.py` accepts identified client-project invitations in canonical or discovery shape, with nonblank exact ID, public URL, client and description evidence. Generic platform/network/profile intake and employment mislabeled as an invitation remain excluded. Every normal fit/freshness/current-geography/eligibility/route/history gate still applies in renderer and packets.
+- Canonical `uploaded` and legacy `uploaded_observed` evidence can substantiate an attachment claim only with retained authorization, exact opportunity/current hash, nonblank evidence and an aware nonfuture time. The exact saved canonical event is reused unchanged. Selected-version manifest/content/layout/role/language/fact safeguards remain; upload does not prove submission or authorize another action. Drafts stay `not_sent` and outputs stay private.
+- HN employer aliases normalize missing/blank canonical company fields from the explicit employer and reject conflicting company/client or paired URLs. Required identity/linkage fields cannot be blank. HN item IDs stay separate from employer requisitions; reported/suppressed linkage survives canonical save/reload.
+
+The 28-source catalog retains all original identities/evidence, Guru's historical API 403 and candidate-scoped Arc/Scalable Path URLs. Supplemental employer routes increase from five to seven with NESS and The Trade Desk. Candex's observed browser `embed=js` route is distinct from its still-failing bare root; previous failure evidence remains. Dated 2026-11-26 access observations, including talent-pool distinction and partial pagination, do not establish current availability, exact role/form verification or whole-registry health. The 288-board seed/snapshot, licenses, public prompt and its narrow reviewed-hash export gate are byte-identical to the starting public commit. No live provider, browser or collector was used.
+
+The existing interpreter ran:
+
+```console
+python -X utf8 -B -m unittest discover -s skills/workhunt-search/tests -v
+python -X utf8 -B tools/refresh_workhunt_references.py --check
+```
+
+**211 tests in 90.964 seconds, OK, exit 0** (`workhunt-agpl3-be9-suite-2.log`). This is the complete stable-tree offline suite, including 31 manual-channel/draft/outcome methods, 18 eligibility methods, nine legacy-context methods, four profile-mapping methods, three prompt-export methods and existing history/adapter/setup/manifest/install protections. Nine methods were added for this runtime update; the three prompt-export methods came from the preceding prompt correction. Counts are test methods, not independent reviews. Focused checks separately passed 31 manual-channel methods in 1.296 seconds and 18 eligibility methods in 2.633 seconds. No global skill installation or dependency installation occurred.
+
+The first full attempt ran 211 tests in 83.537 seconds and failed one isolated placement check (`workhunt-agpl3-be9-suite-1.log`): the installer detected a MANUAL_DISCOVERY copy changing while guide synchronization overlapped the run. That failed run is retained and is not acceptance. The final rerun used a stable tree with no concurrent target writes. Parent's initial route probe also exposed a temporary return-contract mismatch (`next_action` versus a new boolean); the source `next_action` string contract was restored before the final suite. Parent read-only after-probes passed all four repair groups, including existing private-output, applicability and selected-CV protections, in `workhunt-agpl3-parent-runtime-probes.json`. Parent verification is not a second worker evaluation.
+
+Owned-manifest refresh/check covers all 17 portable packages and reports zero pending shared changes. Candidate inspection finds **1223 UTF-8 text files**, **304 expected files per provider and 912 exact byte comparisons**, with no extras. JSON/Python parsing, local Markdown links, English Markdown/comments/docstrings and bounded candidate/private-machine-path/key/token/credential patterns pass. Eight recognized credential-URL matches are existing negative synthetic tests. Nine empty profile examples, empty manifests and unbound descriptors remain unchanged. Original private prompt content, original legacy fixture/generator, CVs, filled configuration/history, real provenance and research outputs remain excluded. Pattern checks are bounded, not proof against every possible unknown secret.
+
+The reviewed public root prompt remains SHA-256 `81406ce812e0414d75e26a28be8a66cba416fd5ca23832bb1c93f66475ef923f`; its narrow root-only exporter contract remains unchanged. License, pinned employer snapshot and synthetic legacy fixture hashes are retained below and checked again in this update. Existing MIT, ODbL, Unlicense and originator/maintainer credits remain. The Job Hunt Kit's positive sharing statement still does not establish explicit AGPL relicensing permission; that unresolved limitation remains in the notices.
+
+The previous 1218-file export matched every filename and byte hash in published commit `19cf13f9bf3722727cc398f76a7178c5653bce3e`. After resolved-path/ownership checks it was preserved in a temporary backup; no unexpected user file was deleted or overwritten. The refreshed sibling `workhunt-agpl3-export` contains **1223 files** equal to the inspected candidate, without `.git`, `.workhunt`, private original prompt/fixture/generator or completed user data.
+
+From the clean export's test directory:
+
+```console
+python -X utf8 -B -m unittest test_manual_channels test_work_eligibility test_legacy_brief_context test_release.ProfileMappingTests test_prompt_export -v
+```
+
+**65 tests in 9.987 seconds, OK, exit 0**, recorded in `workhunt-agpl3-be9-export-tests.log`: 31 manual-channel/draft/outcome, 18 eligibility, nine legacy-context, four profile-mapping and three prompt-export methods. All 1223 export file hashes remained unchanged. No source history or private fixture generator was required; the prompt tests create disposable Git inventories outside the export. Repeated regressions are not independent reviews.
+
+Only this verified validation file was synchronized afterward. Final candidate/export filenames and bytes equal the complete staged Git inventory and blobs; staged `git diff --check` passes and no unstaged paths remain. Exact index tree, inventory and equality evidence are stored externally in `workhunt-agpl3-be9-export-proof.json` and `workhunt-agpl3-be9-handoff.json`, avoiding circular self-hash claims. The only product-tree edits after the stable full suite were preparation README/validation evidence. No worker commit/push occurred.
+
+Subsequent user steering to plan `5964227c0d151558f30305e97524e77bc4c668f2` and source `31da81d4bfef8fc6dfccd1f3f6687890014d0831` arrived during export finalization. That source-observation binding repair was pending at the earlier handoff; it is implemented and verified separately in the current section above. The earlier 211/65-test acceptance did not cover it. New private jobs/applied-history changes remain excluded.
+
+Work order: implementation worker `/root/agpl3_executor`, requested `gpt-6-astra/xhigh`; exact runtime model/effort metadata unavailable. `mode_verified_from_work_order=true` proves the accepted explicit request only. External `workhunt-agpl3-be9-work-order.json` records pinned input hashes and the request. No nested delegation, questions, personal-browser access, account action, search, submission or message was performed. The user authorizes public-main application; parent review/commit/push/readback is separate from this worker's staged-tree handoff.
+
+## Historical evidence below
+
+All statements in the following sections describe their named earlier phases, including earlier counts, pending-publication wording and filename exclusions. They are preserved as historical results and limitations, not claims that those actions were repeated for this runtime update. The sanitized public prompt remains included; its private original remains excluded.
+
+## Historical public prompt correction — 2026-11-27
 
 The user explicitly requested copying the prompt as well. That instruction supersedes the earlier filename exclusion while retaining the English, privacy and empty-configuration requirements. Starting target commit: `1d9c400aec4c7c170da7407e8ee417f13bc2fe08`. The complete source prompt was read at pinned revision `21e818aebffc553f9dadaf0214b6969da85dd962`, blob `b5a9baa52eadc0017b1527803978215d4fd39644`, last modified at `be9fba8493a05330768691f8c3b76f8d36ce5c31`. No unrelated later source runtime, catalog or private records were imported; the source received no writes from this worker.
 

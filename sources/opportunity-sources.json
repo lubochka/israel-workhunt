@@ -604,13 +604,22 @@
           "url": "https://www.guru.com/d/jobs/",
           "purpose": "Search projects, open exact brief and observe Send a Quote destination",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "public_page"
+        },
+        {
+          "url": "https://www.guru.com/d/jobs/",
+          "purpose": "Same public listing in fresh hidden browser after extractor error/shell; no personal profile",
+          "access": "public_manual",
+          "automated": false,
+          "method": "isolated_browser"
         },
         {
           "url": "https://www.guru.com/how-it-works-freelancer/",
           "purpose": "Documented scope/payment quote workflow",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "public_page"
         }
       ],
       "lifecycle_state": "conditional",
@@ -898,6 +907,19 @@
           "purpose": "Public Israel-filtered discovery; verify exact role country terms",
           "access": "public_manual",
           "automated": false,
+          "method": "public_page",
+          "applicability": {
+            "eligible_countries_any": [
+              "IL"
+            ]
+          }
+        },
+        {
+          "url": "https://arc.dev/en-il/remote-jobs",
+          "purpose": "Same public listing in fresh hidden browser after extractor error/shell; no personal profile",
+          "access": "public_manual",
+          "automated": false,
+          "method": "isolated_browser",
           "applicability": {
             "eligible_countries_any": [
               "IL"
@@ -908,7 +930,8 @@
           "url": "https://arc.dev/w/codementorx",
           "purpose": "Current identity/rebrand reference, not a vacancy",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "public_page"
         }
       ],
       "lifecycle_state": "conditional",
@@ -979,13 +1002,15 @@
           "url": "https://news.ycombinator.com/submitted?id=whoishiring",
           "purpose": "Find actual current Who is hiring thread, then exact hiring comments",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "public_page"
         },
         {
           "url": "https://news.ycombinator.com/jobs",
           "purpose": "Independent job stories; not monthly-thread comments",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "public_page"
         }
       ],
       "lifecycle_state": "conditional",
@@ -1048,6 +1073,7 @@
           "purpose": "Specialty .NET job listing; network profile is a separate admission path",
           "access": "public_manual",
           "automated": false,
+          "method": "public_page",
           "applicability": {
             "required_stack_any": [
               "dotnet",
@@ -1112,13 +1138,22 @@
           "url": "https://jobs.x-team.com",
           "purpose": "Public job list; use fresh hidden browser if extractor only returns Loading Job Ad",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "public_page"
+        },
+        {
+          "url": "https://jobs.x-team.com",
+          "purpose": "Same public listing in fresh hidden browser after extractor error/shell; no personal profile",
+          "access": "public_manual",
+          "automated": false,
+          "method": "isolated_browser"
         },
         {
           "url": "https://x-team.com/how-to-get-hired-at-x-team",
           "purpose": "Hiring/location guidance; not itself a vacancy",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "public_page"
         }
       ],
       "lifecycle_state": "conditional",
@@ -1184,13 +1219,15 @@
           "url": "https://gun.io/find-work/",
           "purpose": "Developer admission and matching; inspect exact supplied opportunity separately",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "public_page"
         },
         {
           "url": "https://gun.io/faq/",
           "purpose": "Client constraints and platform process; not a job list",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "public_page"
         }
       ],
       "lifecycle_state": "conditional",

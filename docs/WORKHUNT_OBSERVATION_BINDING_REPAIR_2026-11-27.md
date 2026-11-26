@@ -1,0 +1,11 @@
+# Observation-to-target binding repair
+
+This reusable design follows pinned source `31da81d4bfef8fc6dfccd1f3f6687890014d0831` and plan `5964227c0d151558f30305e97524e77bc4c668f2`. Current public-release checks are in [validation](../PrepareToGPL/VALIDATION.md). Source private jobs/applied-history changes and populated diagnostics are not copied or treated as rollback targets. Historical source QA is not current release acceptance.
+
+An observation for one channel previously could mark another selected employer complete or send it into pagination. Binding now precedes coverage, continuation and attempt consumption. Coherent IDs/aliases, unique exact configured routes and exact catalog websites bind; unconfigured detail URLs need explicit identity and paired navigation. Conflicting identities/URLs/redirects and ambiguous ownership stay diagnostic and leave the affected target not attempted. Foreign malformed attempts cannot abort an otherwise valid target result.
+
+CLI coverage and fallback maps are keyed by target ID. One private observation per bounded target scope is required; duplicates are rejected without silently choosing or aggregating. Unselected catalog/lifecycle/employer targets remain in ambiguity checks. Structural linkage does not prove supplied facts, live availability or whole-board coverage.
+
+The [manual guide](../sources/MANUAL_DISCOVERY.md) and [public prompt](../workhunt_prompt.md) retain the binding contract, method/query/redirect identity, current profile applicability and invocation boundary. The prompt receives only the reusable binding paragraph, with its reviewed exporter hash updated intentionally. Exact-root, marker and hash protection remains; nested/private/unreviewed variants are rejected.
+
+Runtime diagnostics may contain raw private payloads. Filled observations, attempts, binding/ignored/other-observation results and named observation-binding artifacts are excluded from the release and provider packages, even when nested in renamed JSON. Tests use synthetic data in isolated temporary workspaces. This release preparation performs no network/browser search, upload, application or collector-health update; earlier public access observations keep their original dates and limits.

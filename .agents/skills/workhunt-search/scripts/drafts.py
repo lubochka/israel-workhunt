@@ -70,7 +70,9 @@ def prepare_draft(draft, opportunity_id=None, cv=None, portfolio=None, now=None)
     attached = bool(isinstance(attachment, dict) and opportunity_id and cv.get("current_sha256")
                     and attachment.get("opportunity_id") == opportunity_id
                     and attachment.get("sha256") == cv["current_sha256"]
-                    and attachment.get("status") == "uploaded_observed" and supported_text(attachment.get("evidence"))
+                    and attachment.get("status") in {"uploaded", "uploaded_observed"}
+                    and (supported_text(attachment.get("authorization")) or isinstance(attachment.get("authorization"), dict) and bool(attachment["authorization"]))
+                    and supported_text(attachment.get("evidence"))
                     and observed and observed.timestamp() <= now.timestamp())
     if ATTACHMENT_CLAIM.search(text) and not attached:
         issues.append("Unsupported CV-attachment claim; selected/prepared is not uploaded")

@@ -1,5 +1,6 @@
 """Real Git-inventory export checks for the reviewed public prompt boundary."""
 from pathlib import Path
+import json
 import subprocess
 import sys
 import tempfile
@@ -11,6 +12,25 @@ import export_release
 
 
 class PublicPromptExportTests(unittest.TestCase):
+    def test_tracked_observation_diagnostic_artifacts_are_rejected_before_export(self):
+        self.stage("observation-binding-fixture.json", b"{}\n")
+        with self.assertRaisesRegex(ValueError, "Private or unsupported export entry"):
+            export_release.export(self.output, self.root)
+        self.assertFalse(self.output.exists())
+
+    def test_renamed_nested_runtime_diagnostics_are_rejected_but_public_metadata_exports(self):
+        path = self.stage("metadata.json", b"{}\n")
+        for key in ("binding", "ignored_observation", "ignored_attempts", "other_observations"):
+            value = {"nested": [{"payload": {key: {"synthetic_private_value": "fixture-only"}}}]}
+            path.write_text(json.dumps(value), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Private observation diagnostics"):
+                export_release.export(self.output, self.root)
+            self.assertFalse(self.output.exists())
+        public = {"schema_version": 1, "versions": [], "public_route": "https://fixture.invalid/jobs"}
+        path.write_text(json.dumps(public), encoding="utf-8")
+        self.assertEqual(export_release.export(self.output, self.root), 1)
+        self.assertEqual(json.loads((self.output / "metadata.json").read_text('utf-8')), public)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="workhunt-public-prompt-")
         self.addCleanup(self.temp.cleanup)

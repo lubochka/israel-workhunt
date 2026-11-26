@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from urllib.parse import urlsplit
 from profile_config import shared_root, private_path
+from records import norm, url_identity
+from opportunity_types import identified_project, source_access_record
 
 
 def supported_text(value):
@@ -96,6 +98,10 @@ def select_sources(catalog, values, profile=None):
 
 def opportunity_candidate(record):
     """Admission/profile/service pages cannot become jobs by supplying a source ID."""
+    if source_access_record(record, record.get("review")):
+        return False
+    if record.get("response_mode") == "client_invitation":
+        return identified_project(record, record.get("review"))
     return (record.get("record_kind") == "opportunity"
             and record.get("response_mode") in {"vacancy_application", "project_proposal", "agency_vacancy", "agency_screening"}
             and supported_text(record.get("opportunity_id")) and supported_text(record.get("listing_url"))
@@ -129,24 +135,165 @@ def coverage_observation(observation):
     return result
 
 
-def fallback_plan(source, observation, attempted_urls=(), profile=None):
-    state = coverage_observation(observation)
-    if state["status"] == "checked_empty":
-        return {"status": "checked_empty", "next_routes": [], "executes_network": False, "reason": "Explicit empty result in the recorded completed scope; do not retry it as an access failure"}
+ROUTE_METHODS = {"public_page", "isolated_browser", "public_search"}
+
+
+def route_attempt_key(url, method="public_page"):
+    identity = url_identity(url) if supported_text(url) else None
+    if not identity or not isinstance(method, str) or method not in ROUTE_METHODS:
+        raise ValueError("A route attempt requires a public URL and supported explicit method")
+    return identity, method
+
+
+TARGET_FIELDS = ("target_id", "source_id", "source", "employer_id", "employer")
+
+
+def _label_key(value):
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return url_identity(value) if "://" in value else value.strip().casefold()
+
+
+def _labels(source):
+    return {_label_key(value) for value in [source.get("id"), source.get("name"), source.get("website"), *source.get("aliases", [])]} - {None}
+
+
+def _route_urls(source):
+    # Original catalog channels may have only a website, not manual_routes.
+    # Its exact URL is a navigation anchor, never permission for every host path.
+    return {url_identity(source.get("website")), *(url_identity(route.get("url")) for route in source.get("manual_routes", []))} - {None, ""}
+
+
+def observation_binding(source, observation, targets=None, require_evidence=True):
+    """Bind supplied evidence, never infer ownership from a hostname or an alias URL prefix."""
+    rows = list(targets) if targets is not None else [source]
+    own = source.get("id")
+    own_indexes = {i for i, row in enumerate(rows) if row is source or (own and row.get("id") == own)}
+    if not own_indexes:
+        rows.append(source)
+        own_indexes = {len(rows) - 1}
+    result = {"bound": False, "target_id": own, "reason": "No observation for this target"}
+
+    def owners(url):
+        return {i for i, row in enumerate(rows) if url in _route_urls(row)} if url else set()
+
+    def unique_own(matches):
+        return len(matches) == 1 and bool(matches & own_indexes)
+
+    explicit = False
+    for key in TARGET_FIELDS:
+        if key not in observation:
+            continue
+        explicit = True
+        value = _label_key(observation[key])
+        matches = {i for i, row in enumerate(rows) if value and value in _labels(row)}
+        if not unique_own(matches):
+            return {**result, "reason": "Conflicting, unknown or ambiguous explicit target identity", "field": key}
+    url = url_identity(observation.get("source_url"))
+    if not url:
+        return result
+    evidence = observation.get("evidence")
+    if require_evidence and (not isinstance(evidence, str) or not evidence.strip()):
+        return {**result, "reason": "Target evidence must be nonblank text"}
+    matches = owners(url)
+    navigation = observation.get("navigation")
+
+    def linked(start, end):
+        return (isinstance(navigation, dict)
+                and url_identity(navigation.get("from_url")) == start
+                and url_identity(navigation.get("to_url")) == end
+                and isinstance(navigation.get("evidence"), str) and bool(navigation["evidence"].strip()))
+
+    if matches and not unique_own(matches):
+        return {**result, "reason": "Observed route belongs to another or ambiguous target"}
+    if not matches:
+        origin = url_identity(navigation.get("from_url")) if isinstance(navigation, dict) else None
+        if not (explicit and unique_own(owners(origin)) and linked(origin, url)):
+            return {**result, "reason": "No exact configured route or evidenced target navigation"}
+    resolved = url_identity(observation.get("resolved_url"))
+    if observation.get("resolved_url") and (not resolved or (resolved != url and not unique_own(owners(resolved)) and not (not owners(resolved) and linked(url, resolved)))):
+        return {**result, "reason": "Redirect is unrelated, ambiguous or lacks paired navigation evidence"}
+    return {**result, "bound": True, "reason": "Explicit target and exact route/navigation" if explicit else "Legacy unique exact configured route",
+            "source_url": observation["source_url"]}
+
+
+def target_coverage(source, observation, targets=None):
+    binding = observation_binding(source, observation, targets)
+    if binding["bound"]:
+        state = coverage_observation(observation)
+    else:
+        state = coverage_observation({"transport_status": "not_attempted"})
+        state["ignored_observation"] = copy.deepcopy(observation)
+    return {**state, "target_id": source.get("id"), "binding": binding}
+
+
+def select_observation(source, observations, targets):
+    """One observation per target/scope; never silently aggregate categories or pick a winner."""
+    candidates = []
+    for observation in observations:
+        explicit = any(_label_key(observation.get(key)) in _labels(source) for key in TARGET_FIELDS)
+        exact = url_identity(observation.get("source_url")) in _route_urls(source)
+        if explicit or exact or observation_binding(source, observation, targets)["bound"]:
+            candidates.append(observation)
+    if len(candidates) > 1:
+        raise ValueError("Multiple observations for target " + str(source.get("id")) + "; supply one explicit bounded scope per target")
+    return candidates[0] if candidates else {}
+
+
+def fallback_plan(source, observation, attempted_urls=(), profile=None, *, attempted_routes=(), targets=None):
+    """Plan remaining pairs; the fourth positional argument remains the private profile."""
+    state = target_coverage(source, observation, targets)
+    base = {"target_id": source.get("id"), "binding": state["binding"], "executes_network": False}
+    if not state["binding"]["bound"]:
+        base["ignored_observation"] = state["ignored_observation"]
+    if state["status"] in {"checked", "checked_empty"}:
+        return {**base, "status": state["status"], "next_routes": [], "executes_network": False, "reason": "Selected route completed its evidenced scope; do not retry it as an access failure"}
+    count = observation.get("observed_count")
+    if (state["status"] == "partial" and observation.get("transport_status") == "success"
+            and observation.get("content_kind") == "opportunity_list"
+            and type(count) is int and count > 0
+            and supported_text(observation.get("evidence")) and supported_text(observation.get("source_url"))):
+        return {**base, "status": "partial", "next_routes": [], "next_action": "continue_selected_route_coverage",
+                "reason": "Continue remaining pages on the working selected route", "executes_network": False}
     # Bounded: each documented public alternative once; no auth bypass or brute force.
-    tried = {source_key(url) for url in attempted_urls}
-    routes, unresolved = [], []
+    tried, ignored_attempts = set(), []
+    attempts = [{"url": url, "method": "public_page"} for url in attempted_urls]
+    attempts += [*observation.get("attempted_routes", []), *attempted_routes]
+    if state["binding"]["bound"]:
+        if observation.get("transport_status", "not_attempted") != "not_attempted":
+            attempts.append({**observation, "url": observation["source_url"], "method": observation.get("method", "public_page")})
+        for attempt in attempts:
+            if not isinstance(attempt, dict):
+                ignored_attempts.append({"attempt": copy.deepcopy(attempt), "binding": {"bound": False, "reason": "Attempt is not a target-bound object"}})
+                continue
+            scoped = {**attempt, "source_url": attempt.get("url")}
+            binding = observation_binding(source, scoped, targets, require_evidence=False)
+            if not binding["bound"]:
+                ignored_attempts.append({"attempt": copy.deepcopy(attempt), "binding": binding})
+                continue
+            # Foreign malformed attempts stay diagnostic; own attempts need an explicit method.
+            key = route_attempt_key(attempt.get("url"), attempt.get("method"))
+            tried.add(key)
+            if supported_text(attempt.get("resolved_url")):
+                tried.add(route_attempt_key(attempt["resolved_url"], attempt["method"]))
+    else:
+        ignored_attempts = [{"attempt": copy.deepcopy(attempt), "binding": {"bound": False, "reason": "Parent observation is not bound to this target"}} for attempt in attempts]
+    routes, unresolved, planned = [], [], set()
     for route in source.get("manual_routes", []):
+        if not route.get("enabled", True):
+            continue
         applicability = route_applicability(route, profile)
         if applicability["status"] != "applicable":
             unresolved.append({"url": route.get("url"), "applicability_check": applicability})
             continue
-        key = source_key(route.get("url", ""))
-        if key and key not in tried and route.get("enabled", True):
-            tried.add(key)
-            routes.append({**copy.deepcopy(route), "applicability_check": applicability})
-    return {"status": state["status"], "next_routes": routes[:3], "unrecommended_scoped_routes": unresolved, "max_attempts_per_route": 1,
-            "reason": "Use documented public alternatives; preserve original failure and stop after available routes",
+        method = route.get("method", "public_page")
+        key = route_attempt_key(route.get("url"), method)
+        if key not in tried and key not in planned:
+            planned.add(key)
+            routes.append({**copy.deepcopy(route), "method": method, "applicability_check": applicability})
+    return {**base, "status": state["status"], "ignored_attempts": ignored_attempts, "next_routes": routes[:3], "unrecommended_scoped_routes": unresolved, "max_attempts_per_route": 1,
+            "attempt_identity": "functional URL plus method", "legacy_attempted_urls_method": "public_page", "exhausted": not routes,
+            "reason": "Use documented public alternatives; preserve original failure and redirects and stop after available pairs",
             "executes_network": False}
 
 
@@ -174,9 +321,20 @@ def hn_candidate(item, thread_id=None, employer_identity=None):
            "employer_listing_url": item.get("url"), "refresh_evidence": None}
     if employer_identity:
         # Only explicit observed same-requisition linkage can become an identity alias.
-        if not all(supported_text(employer_identity.get(k)) for k in ("id", "url", "employer", "source_job_id", "identity_evidence")):
+        if not isinstance(employer_identity, dict) or not all(supported_text(employer_identity.get(k)) for k in ("id", "url", "employer", "source_job_id", "identity_evidence")):
             raise ValueError("Employer alias requires exact requisition and linkage evidence")
-        row["source_aliases"] = [copy.deepcopy(employer_identity)]
+        alias = copy.deepcopy(employer_identity)
+        if not url_identity(alias["url"]):
+            raise ValueError("Employer alias requires a public listing URL")
+        if any(norm(alias.get(key)) and norm(alias[key]) != norm(alias["employer"]) for key in ("company", "employer_or_client")):
+            raise ValueError("Employer alias contains conflicting employer fields")
+        if alias.get("source_url") and url_identity(alias["source_url"]) != url_identity(alias["url"]):
+            raise ValueError("Employer alias contains conflicting listing URLs")
+        if not norm(alias.get("company")):
+            alias["company"] = alias["employer"]
+        if "employer_or_client" in alias and not norm(alias["employer_or_client"]):
+            alias["employer_or_client"] = alias["employer"]
+        row["source_aliases"] = [alias]
     return row
 
 
@@ -199,7 +357,16 @@ if __name__ == "__main__":
         raise ValueError("Unknown or duplicate employer fallback selection")
     result["employer_fallbacks"] = employer_routes
     if args.observation:
-        observation = json.loads(private_path(args.workspace, args.observation).read_text(encoding="utf-8"))
-        result["coverage"] = coverage_observation(observation)
-        result["fallbacks"] = {row["id"]: fallback_plan(row, observation, observation.get("attempted_urls", []), profile) for row in [*selected, *employer_routes]}
+        supplied = json.loads(private_path(args.workspace, args.observation).read_text(encoding="utf-8"))
+        observations = supplied.get("observations", [supplied]) if isinstance(supplied, dict) else None
+        if not isinstance(observations, list) or not all(isinstance(item, dict) for item in observations):
+            raise ValueError("Supply one observation object or {observations: [objects]}")
+        targets = [*catalog["sources"].values(), *catalog["lifecycle_references"].values(), *catalog["employer_fallbacks"]]
+        result["coverage"], result["fallbacks"] = {}, {}
+        for row in [*selected, *employer_routes]:
+            observation = select_observation(row, observations, targets)
+            state = target_coverage(row, observation, targets)
+            state["other_observations"] = [copy.deepcopy(item) for item in observations if item is not observation]
+            result["coverage"][row["id"]] = state
+            result["fallbacks"][row["id"]] = fallback_plan(row, observation, observation.get("attempted_urls", []), profile, targets=targets)
     print(json.dumps(result, ensure_ascii=False, indent=2))

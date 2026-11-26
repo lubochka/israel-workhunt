@@ -87,7 +87,8 @@
           "url": "https://www.codevalue.com/career",
           "purpose": "Official public recovery route; exact vacancy still needs verification",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "public_page"
         }
       ],
       "research_evidence": {
@@ -107,7 +108,8 @@
           "url": "https://www.comm-it.com/commit-jobs",
           "purpose": "Official public recovery route; exact vacancy still needs verification",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "public_page"
         }
       ],
       "research_evidence": {
@@ -124,10 +126,18 @@
       "failed_url": "https://jobs.lever.co/oktopost",
       "manual_routes": [
         {
+          "url": "https://jobs.lever.co/oktopost",
+          "method": "isolated_browser",
+          "purpose": "Observed public Lever list recovery after extractor403",
+          "access": "public_manual",
+          "automated": false
+        },
+        {
           "url": "https://www.oktopost.com/careers/",
           "purpose": "Official public recovery route; exact vacancy still needs verification",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "public_page"
         }
       ],
       "research_evidence": {
@@ -147,7 +157,8 @@
           "url": "https://jobs.ashbyhq.com/finout",
           "purpose": "Official public recovery route; exact vacancy still needs verification",
           "access": "public_manual",
-          "automated": false
+          "automated": false,
+          "method": "isolated_browser"
         }
       ],
       "research_evidence": {
@@ -164,8 +175,67 @@
       "failed_url": "https://jobs.ashbyhq.com/candex",
       "manual_routes": [
         {
-          "url": "https://www.candex.com/careers",
-          "purpose": "Official public recovery route; exact vacancy still needs verification",
+          "url": "https://jobs.ashbyhq.com/candex?embed=js",
+          "method": "isolated_browser",
+          "purpose": "Historically observed official iframe/View all target; bare root without query still failed. Wait for actual list content.",
+          "access": "public_manual",
+          "automated": false
+        },
+        {
+          "url": "https://www.candex.com/site/careers/",
+          "method": "public_page",
+          "purpose": "Official canonical careers and exact ashby_jid links; homepage reachability alone is not board recovery",
+          "access": "public_manual",
+          "automated": false
+        },
+        {
+          "url": "https://www.candex.com/site/careers/",
+          "method": "public_search",
+          "purpose": "Per-employer exact original-ad discovery; retain exact requisition and all functional query parameters",
+          "access": "public_manual",
+          "automated": false,
+          "query": "site:www.candex.com/site/careers/ Candex ashby_jid"
+        }
+      ],
+      "research_evidence": {
+        "date": "2026-11-26",
+        "method": "parent_isolated_browser_read_only",
+        "source_url": "https://jobs.ashbyhq.com/candex?embed=js",
+        "observation": "On the recorded date, the official iframe/View all open positions link with embed=js rendered 6 rows: 5 named roles and 1 Join our Talent Pool entry. The same hidden browser reached Page not found at the bare root without query. Only this method/query pair recovered listing access; no role details, freshness, fit or forms were verified.",
+        "listing_rows": 6,
+        "named_role_links": 5,
+        "talent_pool_rows": 1,
+        "recovery_status": "listing_recovered_for_recorded_url_and_method",
+        "root_without_query_status": "page_not_found",
+        "detail_url_pattern": "https://www.candex.com/site/careers/?ashby_jid={observed_id}",
+        "observed_role_ids": [
+          "f5169d07-33b7-4964-b89a-b4400095dce3",
+          "35ef5bc6-6618-472e-a6dd-85d23fca65f7",
+          "f6c322db-99c3-4b35-b938-58c8bd17c987",
+          "c78201cb-ebcb-40c3-bfe0-1229e07f874c",
+          "79199f9f-956b-4f56-843d-0b0745226891"
+        ],
+        "talent_pool_id": "d3b7f446-d731-4b29-b77b-15db9b00140e"
+      },
+      "collector_health_updated": false,
+      "tenant_changed": false,
+      "research_history": [
+        {
+          "date": "2026-11-26",
+          "method": "parent_public_page_or_isolated_browser_read_only",
+          "observation": "Employer page reachable; embedded Ashby frame blank; direct tenant settled on Page not found in fresh hidden browser. Unresolved, no replacement tenant or empty-board claim."
+        }
+      ]
+    },
+    {
+      "id": "ness",
+      "name": "NESS",
+      "prior_board_key": "smartrecruiters::nesstechnologies",
+      "manual_routes": [
+        {
+          "url": "https://www.ness-tech.co.il/careers/",
+          "method": "isolated_browser",
+          "purpose": "Observed official manual source recovery; exact opportunities require all gates",
           "access": "public_manual",
           "automated": false
         }
@@ -173,10 +243,49 @@
       "research_evidence": {
         "date": "2026-11-26",
         "method": "parent_public_page_or_isolated_browser_read_only",
-        "observation": "Employer page reachable; embedded Ashby frame blank; direct tenant settled on Page not found in fresh hidden browser. Unresolved, no replacement tenant or empty-board claim."
+        "source_url": "https://www.ness-tech.co.il/careers/",
+        "observation": "On the recorded date, primary search identified the official careers page. The extractor returned a 26-line shell; a fresh hidden browser rendered actual position cards, locations and detail buttons. No exact detail, form or fit was verified."
+      },
+      "collector_health_updated": false,
+      "tenant_changed": false
+    },
+    {
+      "id": "the_trade_desk",
+      "name": "The Trade Desk",
+      "prior_board_key": "smartrecruiters::tradedesk",
+      "manual_routes": [
+        {
+          "url": "https://careers.thetradedesk.com/jobs",
+          "method": "public_page",
+          "purpose": "Observed official manual source recovery; exact opportunities require all gates",
+          "access": "public_manual",
+          "automated": false
+        }
+      ],
+      "research_evidence": {
+        "date": "2026-11-26",
+        "method": "parent_public_page_or_isolated_browser_read_only",
+        "source_url": "https://careers.thetradedesk.com/jobs",
+        "observation": "On the recorded date, the official homepage led to the careers site and Browse Jobs. The page reported 125 total roles; 10 actual first-page cards with requisition links and 13-page pagination were observed. This was partial first-page coverage, not inspection of 125 jobs."
       },
       "collector_health_updated": false,
       "tenant_changed": false
     }
-  ]
+  ],
+  "attempt_contract": {
+    "identity": [
+      "functional_url",
+      "method"
+    ],
+    "methods": [
+      "public_page",
+      "isolated_browser",
+      "public_search"
+    ],
+    "legacy_attempted_urls": "public_page only; browser not assumed attempted",
+    "max_attempts_per_url_method": 1,
+    "preserve_redirect_targets": true,
+    "per_employer_evidence_required": true,
+    "loop_rule": "Record corporate and embedded URLs/methods actually attempted; never circle back to same failed pair. Mixed multi-company query is not separate board coverage."
+  }
 }
