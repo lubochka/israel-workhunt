@@ -1,0 +1,15 @@
+{
+  "fixture_kind": "synthetic_legacy_collector_brief",
+  "description": "Hand-authored English regression data; not extracted from a profile or Git history.",
+  "search_brief": {
+    "run_type": "manual",
+    "requested_minimum": 3,
+    "timezone": "UTC",
+    "window_start": "2026-06-01T12:00:00+00:00",
+    "window_end": "2026-06-02T12:00:00+00:00",
+    "tracks": ["development"],
+    "required_stack": ["dotnet", "angular"],
+    "manual_source_freshness_hours": {"employer_registry": 60, "techmap": 60},
+    "manual_freshness_policy": {}
+  }
+}

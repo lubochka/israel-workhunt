@@ -44,16 +44,62 @@ def fixed_window(end, hours, start=None, timezone=None):
     return {"hours": hours, "window_start": start if start is not None else expected.isoformat(), "window_end": end.isoformat()}
 
 
-def search_brief(profile, now, saved=None, execution_context=None):
+RUN_BRIEF_FIELDS = ("window_start", "window_end", "source_windows", "requested_minimum", "run_type", "manual_source_freshness_hours", "manual_freshness_policy", "timezone")
+
+
+def run_brief_snapshot(run):
+    saved = copy.deepcopy(run.get("search_brief") or {})
+    for key in RUN_BRIEF_FIELDS:
+        if key in run:
+            saved[key] = copy.deepcopy(run[key])
+    return saved
+
+
+def recorded_run_context(run):
+    if "boards_attempted" in run and "fixture_mode" in run:
+        return "collector"
+    saved = run_brief_snapshot(run)
+    if run.get("execution_context") or saved.get("execution_context"):
+        return run.get("execution_context") or saved["execution_context"]
+    if saved.get("run_type") in {"notification", "assessment", "fixture"}:
+        return saved["run_type"]
+    # Recorded source windows are enacted policy, unlike dormant preferences
+    # copied by the old collector's profile-derived helper.
+    return "manual" if saved.get("source_windows") else "unresolved"
+
+
+def recover_brief_context(saved, runs):
+    matches = [run for run in runs if run.get("search_brief") == saved or run_brief_snapshot(run) == saved]
+    provenance = {"status": "unresolved_unmatched_legacy", "matching_run_ids": [run.get("id") for run in matches]}
+    if not matches:
+        return saved, "unresolved", provenance
+    candidates = [(run_brief_snapshot(run), recorded_run_context(run)) for run in matches]
+    # Canonical metadata cannot silently revise supplied bounds or policy.
+    conflict = any(any(key in saved and value.get(key) != saved[key] for key in RUN_BRIEF_FIELDS) for value, _ in candidates)
+    policies = [(context, {key: value.get(key) for key in RUN_BRIEF_FIELDS}) for value, context in candidates]
+    if conflict or any(policy != policies[0] for policy in policies[1:]):
+        provenance["status"] = "unresolved_conflicting_canonical_evidence"
+        return saved, "unresolved", provenance
+    value, context = candidates[0]
+    provenance["status"] = "canonical_snapshot_match" if context != "unresolved" else "unresolved_canonical_context"
+    return value, context, provenance
+
+
+def search_brief(profile, now, saved=None, execution_context=None, saved_runs=None):
     # A saved run is a policy snapshot. Never merge today's profile into it.
     config = copy.deepcopy(saved if saved is not None else profile.get("search_brief") or {})
     if not isinstance(config, dict):
         raise ValueError("Search brief must be an object")
+    recorded_marker = config.get("execution_context") if saved is not None else None
+    provenance = {"status": "explicit_execution_context" if execution_context else "new_profile" if saved is None else "recorded_context" if recorded_marker else "recorded_run_type" if config.get("run_type") in {"notification", "assessment", "fixture"} else "unresolved_legacy_context"}
+    recovered_context = None
+    if saved is not None and not recorded_marker and config.get("run_type", "manual") == "manual" and execution_context is None and saved_runs is not None:
+        config, recovered_context, provenance = recover_brief_context(config, saved_runs)
     run_type = config.get("run_type", "manual")
     if run_type not in {"manual", "notification", "assessment", "fixture"}:
         raise ValueError("Unknown search run type")
-    context = execution_context or config.get("execution_context") or ("manual" if run_type == "manual" else run_type)
-    if context not in {"manual", "collector", "notification", "assessment", "fixture"}:
+    context = execution_context or recorded_marker or (config.get("execution_context") if saved is None else None) or recovered_context or (run_type if saved is None or run_type != "manual" else "unresolved")
+    if context not in {"manual", "collector", "notification", "assessment", "fixture", "unresolved"}:
         raise ValueError("Unknown qualification execution context")
     minimum = config.get("requested_minimum", None)
     if minimum is not None and (type(minimum) is not int or minimum < 0):
@@ -73,8 +119,9 @@ def search_brief(profile, now, saved=None, execution_context=None):
     end = recorded_end or now.astimezone(zone)
     manual = context == "manual" and run_type == "manual"
     start = timestamp(config.get("window_start"))
-    hours = (end.timestamp() - start.timestamp()) / 3600 if manual and start else 24
-    base = fixed_window(end, hours, config.get("window_start") if manual and start else None, zone)
+    preserve_base = manual or context == "unresolved" and run_type == "manual"
+    hours = (end.timestamp() - start.timestamp()) / 3600 if preserve_base and start else 24
+    base = fixed_window(end, hours, config.get("window_start") if preserve_base and start else None, zone)
     windows = {"other": base}
     if manual:
         if "source_windows" in config:
@@ -92,13 +139,22 @@ def search_brief(profile, now, saved=None, execution_context=None):
                 windows[group] = fixed_window(end, value.get("hours"), value.get("window_start"), zone)
             if windows["other"]["window_start"] != base["window_start"] and timestamp(windows["other"]["window_start"]).timestamp() != timestamp(base["window_start"]).timestamp():
                 raise ValueError("Saved default source window contradicts recorded base bounds")
-        else:
+        elif saved is None or recorded_marker == "manual":
             mapping = config.get("manual_source_freshness_hours", {})
             if not isinstance(mapping, dict):
                 raise ValueError("manual_source_freshness_hours must be an object")
             for group in EXTENDED_SOURCE_GROUPS & mapping.keys():
                 windows[group] = fixed_window(end, mapping[group], timezone=zone)
-    return {**config, "run_type": run_type, "execution_context": context, "requested_minimum": minimum, "result_cap": cap,
+    if context == "unresolved" and "recorded_source_windows" not in config:
+        # Null records absence, so generated effective bounds cannot become
+        # supposed historical evidence when this normalized snapshot is read again.
+        config["recorded_source_windows"] = copy.deepcopy(config.get("source_windows"))
+    # A normalized snapshot carries original evidence across JSON/packet reloads.
+    # Preserve it without treating that provenance as an execution marker.
+    original_provenance = config.get("context_provenance")
+    return {**config, "run_type": run_type, "execution_context": context,
+            "context_provenance": copy.deepcopy(original_provenance) if isinstance(original_provenance, dict) else provenance,
+            "context_resolution": {**provenance, "execution_context": context}, "requested_minimum": minimum, "result_cap": cap,
             "timezone": zone_name, "language": profile.get("language"), "window_start": base["window_start"], "window_end": end.isoformat(), "source_windows": windows,
             "tracks": config.get("tracks", list(profile["tracks"])),
             "required_stack": config.get("required_stack", []),
@@ -125,18 +181,21 @@ def select_search_run(found, selected_id=None):
 
 
 def brief_from_run(profile, now, run):
-    saved = copy.deepcopy(run.get("search_brief") or {})
-    for key in ("window_start", "window_end", "source_windows", "requested_minimum", "run_type", "execution_context", "manual_source_freshness_hours", "manual_freshness_policy", "timezone"):
-        if key in run:
-            saved[key] = copy.deepcopy(run[key])
-    legacy_collector = "boards_attempted" in run and "fixture_mode" in run
-    return search_brief(profile, now, saved, execution_context="collector" if legacy_collector else None)
+    saved = run_brief_snapshot(run)
+    brief = search_brief(profile, now, saved, execution_context=recorded_run_context(run))
+    resolution = {"status": "canonical_run" if brief["execution_context"] != "unresolved" else "unresolved_canonical_context", "matching_run_ids": [run.get("id")]}
+    if not isinstance(saved.get("context_provenance"), dict):
+        brief["context_provenance"] = resolution
+    brief["context_resolution"] = {**resolution, "execution_context": brief["execution_context"]}
+    return brief
 
 
 def source_window(job, review, brief, now):
     end = timestamp(brief["window_end"])
     manual = brief.get("run_type") == "manual" and brief.get("execution_context", "manual") == "manual"
     base = brief.get("source_windows", {}).get("other") or {"window_start": brief["window_start"], "window_end": brief["window_end"], "hours": (end.timestamp() - timestamp(brief["window_start"]).timestamp()) / 3600}
+    if brief.get("execution_context") == "unresolved" and brief.get("run_type") == "manual":
+        return {**copy.deepcopy(base), "group": "other", "membership_verified": False, "fallback_reason": "Historical context unresolved; recorded base bounds retained without source widening"}
     if not manual:
         return {**fixed_window(end, 24, timezone=brief.get("timezone")), "group": "other", "membership_verified": False, "fallback_reason": "Manual source widening does not apply to this execution context"}
     membership = review.get("source_membership", job.get("source_membership"))

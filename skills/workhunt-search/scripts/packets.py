@@ -130,7 +130,7 @@ if __name__ == "__main__":
         if "search_run_id" in request and (not isinstance(request["search_run_id"], str) or not request["search_run_id"].strip()):
             raise ValueError("Explicit search_run_id must identify a canonical run")
         selected_run = select_search_run(found, request.get("search_run_id")) if "search_brief" not in request else None
-        brief = brief_from_run(profile, now, selected_run) if selected_run else search_brief(profile, now, request.get("search_brief"))
+        brief = brief_from_run(profile, now, selected_run) if selected_run else search_brief(profile, now, request.get("search_brief"), saved_runs=found.get("search_runs", []))
         packet = prepare_packet(args.workdir, matches[0], request.get("review", matches[0].get("review", {})),
                                 brief, now, request["language"], request["role"],
                                 request.get("drafts"), request.get("observed_questions"), request.get("portfolio_evidence"), request.get("authorization"))

@@ -37,3 +37,5 @@ packet-authorization*.json
 submission-event*.json
 source-health.json
 employer-overrides.json
+legacy-collector-5f723c0.json
+generate_legacy_brief_fixture.py

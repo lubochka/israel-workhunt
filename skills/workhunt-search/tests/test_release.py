@@ -31,6 +31,7 @@ def module(name, path):
 setup = module("configure_profile", ROOT / "skills/workhunt-configure-profile/scripts/configure_profile.py")
 refresh = module("refresh_references", ROOT / "tools/refresh_workhunt_references.py")
 installer = module("install_skills", ROOT / "tools/install_workhunt_skills.py")
+exporter = module("export_release", ROOT / "tools/export_release.py")
 
 
 def hashes(folder):
@@ -204,6 +205,16 @@ class ProfileMappingTests(unittest.TestCase):
 
 
 class PlacementTests(unittest.TestCase):
+    def test_export_rejects_private_legacy_fixture_and_generator_even_if_tracked(self):
+        with tempfile.TemporaryDirectory(prefix="workhunt-export-guard-") as folder:
+            for rel in ("skills/workhunt-search/tests/fixtures/legacy-collector-5f723c0.json",
+                        ".agents/skills/workhunt-search/tests/fixtures/legacy-collector-5f723c0.json",
+                        "tools/generate_legacy_brief_fixture.py"):
+                with self.subTest(path=rel), patch.object(exporter.subprocess, "run") as command:
+                    command.return_value.stdout = rel.encode("utf-8") + b"\0"
+                    with self.assertRaisesRegex(ValueError, "Private or unsupported export entry"):
+                        exporter.inventory(Path(folder))
+
     def test_refresh_ignores_private_state_and_keeps_empty_templates(self):
         with tempfile.TemporaryDirectory(prefix="workhunt-refresh-") as folder:
             clone = Path(folder) / "release"
