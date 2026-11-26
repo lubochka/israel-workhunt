@@ -7,6 +7,9 @@ import subprocess
 ROOT = Path(__file__).resolve().parent.parent
 FORBIDDEN_PARTS = {".git", ".workhunt", "__pycache__", ".venv", "tmp", "output", "validation", "data", "runs", "fixture-runs", "outcomes", "reports", "logs"}
 FORBIDDEN_NAMES = {"profile.json", "profile-evidence.json", "professional-summary.md", "cv-manifest.json", "applications.json", "reviews.json", "manual-opportunities.json", ".env", "workspace.local.json", "source-health.json", "employer-overrides.json", "legacy-collector-5f723c0.json", "generate_legacy_brief_fixture.py", "workhunt_prompt.md"}
+# Only this reviewed, parameterized public variant may use the otherwise private prompt name.
+PUBLIC_PROMPT_SHA256 = "81406ce812e0414d75e26a28be8a66cba416fd5ca23832bb1c93f66475ef923f"
+PUBLIC_PROMPT_MARKER = b"<!-- Workhunt public prompt: unfilled candidate-configured workflow; completed requests stay private. -->"
 FORBIDDEN_SUFFIXES = {".pdf", ".docx", ".doc", ".pem", ".key", ".pyc", ".pyo"}
 
 
@@ -17,10 +20,15 @@ def inventory(root=ROOT):
         raise ValueError("Stage the reviewed release inventory before export")
     for rel in paths:
         path = root / rel
-        if rel.is_absolute() or ".." in rel.parts or set(rel.parts) & FORBIDDEN_PARTS or rel.name in FORBIDDEN_NAMES or rel.suffix.lower() in FORBIDDEN_SUFFIXES or rel.name.startswith((".env.", "packet-evidence", "packet-authorization", "submission-event", "draft-request", "local-draft", "coverage-observation", "outcome-events", "source-activity")) or rel.suffix.lower() == ".log":
+        public_prompt = rel.as_posix() == "workhunt_prompt.md"
+        if rel.is_absolute() or ".." in rel.parts or set(rel.parts) & FORBIDDEN_PARTS or (rel.name in FORBIDDEN_NAMES and not public_prompt) or rel.suffix.lower() in FORBIDDEN_SUFFIXES or rel.name.startswith((".env.", "packet-evidence", "packet-authorization", "submission-event", "draft-request", "local-draft", "coverage-observation", "outcome-events", "source-activity")) or rel.suffix.lower() == ".log":
             raise ValueError("Private or unsupported export entry: " + str(rel))
         if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(root.resolve()):
             raise ValueError("Export accepts ordinary files inside the release root only: " + str(rel))
+        if public_prompt:
+            data = path.read_bytes()
+            if PUBLIC_PROMPT_MARKER not in data or hashlib.sha256(data).hexdigest() != PUBLIC_PROMPT_SHA256:
+                raise ValueError("Root prompt must match the reviewed public variant; private or unreviewed content is not exportable")
     return paths
 
 

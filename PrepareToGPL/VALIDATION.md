@@ -1,6 +1,53 @@
 # Current release validation
 
-## Scope and implementation
+## Public prompt correction — 2026-11-27
+
+The user explicitly requested copying the prompt as well. That instruction supersedes the earlier filename exclusion while retaining the English, privacy and empty-configuration requirements. Starting target commit: `1d9c400aec4c7c170da7407e8ee417f13bc2fe08`. The complete source prompt was read at pinned revision `21e818aebffc553f9dadaf0214b6969da85dd962`, blob `b5a9baa52eadc0017b1527803978215d4fd39644`, last modified at `be9fba8493a05330768691f8c3b76f8d36ce5c31`. No unrelated later source runtime, catalog or private records were imported; the source received no writes from this worker.
+
+The actual root `workhunt_prompt.md` now carries the complete reusable English workflow. It is distinct from the shorter private parameter template. Copy/review/publication is not invocation. Current explicit request and confirmed private configuration resolve new-run parameters; saved history and current private geography retain their separate contracts. Exact personal suppressions, version confirmations, candidate facts and original-machine paths are absent. There is no personal duration, minimum, stack, country, language or timezone default. The existing route-age and fit gates and bounded browser readiness limits are retained as workflow safeguards, not candidate preferences.
+
+| Source phase | Retained public behavior and privacy adaptation |
+| --- | --- |
+| 1 — Inputs | Resolve shared/private roots; read actual selected CV content, confirmations and canonical history; use existing skills without installing or rewriting them. |
+| 2 — New run | Create one fixed elapsed-time anchor and explicit manual source windows, minimum/cap, selected tracks/sources and current authorization. Original candidate-specific values become resolved private parameters. |
+| 3 — Qualification | Preserve exact 75% requirement scoring, supported alternatives, degree/experience policies and independent role, country/path, freshness, route and history gates. |
+| 4 — Coverage | Retain employer/local-board, registry/Techmap, remote and paid-project lanes, selected by candidate applicability; admission and profiles are not opportunities. |
+| 4a — Recovery | Keep URL plus method/redirect ledger, functional query parameters, bounded readiness waits/DOM reads, pagination, per-employer evidence and loop prevention. Public routes are explicitly dated references, not new checks or default geography. |
+| 5 — Discovery | Search every selected family/language with parameterized query patterns, broaden variants and follow pages; never query with private CV/contact content. |
+| 6 — Verification | Preserve dated-event intervals and exact current application/proposal proof, qualified-login wording, unknown fields/terms and stopping before personal input/upload/send. |
+| 7 — History | Preserve identity/aliases, re-evaluate unreported leads, read current exact private suppressions and treat missing history as unknown. No personal IDs are copied. |
+| 8 — Persistence | Complete bounded accessible coverage and gap-filling, preserve partial states, obey actual delegation limits and use one canonical writer. |
+| 9 — Delivery | Give all qualifying cards and requested unsent recipient-specific drafts in configured language, separate unverified leads, actual coverage/shortfall and explicit undelivered output. |
+| 10 — Readback | Merge private evidence without overwriting history/concurrent work, distinguish reported/prepared/submitted, verify run bounds/counts and reconcile actual chat delivery. |
+
+Root README and the private parameter template link to the full prompt. Template reference rebasing and generated workspace pointers keep installed packages portable; no filled prompt is packaged. The otherwise forbidden prompt filename has a narrow root-only exporter exception: a distinct public marker and reviewed SHA-256 must both match. A heading or marker alone cannot allow a personalized/unreviewed copy. All nested same-name copies remain rejected. The original private prompt is not included; the sanitized public version is included intentionally.
+
+Current verification used the existing interpreter, without installation:
+
+```console
+python -X utf8 -B -m unittest test_prompt_export test_release.PlacementTests -v
+python -X utf8 -B tools/refresh_workhunt_references.py --check
+```
+
+**Six tests in 39.998 seconds, OK, exit 0** (`workhunt-agpl3-prompt-focused.log`). Three new real temporary-Git tests prove exact public export, rejection of same-heading/marker personalized or unreviewed bytes, and rejection of nested copies. Three existing placement tests retain legacy-private guards, safe refresh/template invariance and isolated 17-package install/check/modified-file protection. No global installation changed. Refresher check reports 17 packages and zero shared changes. Actual ignore checks allow the root public filename and keep the nested filename ignored.
+
+The candidate inspection finds **1218 UTF-8 text files**, 17 packages and **303 expected files per provider: 909 exact byte comparisons, zero extras**. JSON/Python parse, local Markdown links, English prose/comments and bounded candidate/private-path/key/token/credential patterns pass. Nine shared profiles and empty manifests remain unconfigured; distributed descriptors remain unbound. Eight recognized credential-URL matches remain pre-existing synthetic negative test literals. License, employer snapshot/seed and synthetic legacy fixture bytes are unchanged. Pattern checks are bounded, not proof against every unknown secret.
+
+Public prompt SHA-256: `81406ce812e0414d75e26a28be8a66cba416fd5ca23832bb1c93f66475ef923f`. Its marker/hash gate was exercised; the original private prompt was read only from the pinned source, never staged or exported. Source-to-public behavior mapping and accepted work-order metadata are retained externally in `workhunt-agpl3-prompt-source-map.json`. No opportunity-runtime or catalog change is part of this correction. The earlier 199-test full suite and 53-test export run below were **not rerun**.
+
+The previous 1210-file export was compared against every filename and byte hash in published commit `1d9c400aec4c7c170da7407e8ee417f13bc2fe08`. It matched exactly and was preserved in a temporary backup after resolved-path/ownership checks, without overwriting unexpected user files. The refreshed sibling `workhunt-agpl3-export` has **1218 files**, including only the reviewed root public prompt; it contains no `.git`, `.workhunt`, original private prompt, private fixture/generator or completed user data. Candidate and export inventories/bytes match.
+
+From the export's test directory, `python -X utf8 -B -m unittest test_prompt_export -v` passed **three tests in 0.656 seconds, OK, exit 0** (`workhunt-agpl3-prompt-export-tests.log`). The tests create their own disposable Git inventories; they do not require the export to contain repository history. All 1218 export hashes were unchanged afterward. These repeated checks are not independent reviews. Parent separately read the complete public workflow and its source-to-public scope mapping; that is parent verification, not a second worker evaluation.
+
+Only this verified validation file was synchronized afterward. Final filenames/bytes equal both the working tree and staged Git blobs; staged `git diff --check` returns zero and no unstaged paths remain. Proof and exact index tree are retained externally in `workhunt-agpl3-prompt-export-proof.json` and `workhunt-agpl3-prompt-handoff.json`. No commit identity is embedded here; parent commit/push/readback remains separate. No behavior edits followed the focused tests; only preparation evidence was finalized.
+
+Work order: `/root/agpl3_executor`, requested `gpt-6-astra/xhigh`; runtime model/effort metadata unavailable. `mode_verified_from_work_order=true` proves only the accepted explicit request. The worker implemented directly without nested delegation, performed no live job search, personal-browser access, account action, application, message or dependency installation, and will not commit/push this correction. Parent publication is authorized separately by the current task.
+
+## Historical catalog acceptance — preceding published release
+
+Everything below describes the preceding catalog update now published as `1d9c400aec4c7c170da7407e8ee417f13bc2fe08`, not execution repeated for this prompt correction. Its prompt-absence statements describe that earlier state; the private original remains excluded while the sanitized public variant above is now added.
+
+### Scope and implementation
 
 Current local acceptance is dated **2026-11-27**. It follows plan `f08e1b9736a8f712de7b63491242daa7c7c84008`, selectively adapting reusable source changes from `7bd918c9083cc28954344f6c3dc363459ae01fc2` to `1e9dc11179df04b1f0787cd6c6b82d73876ebf8c`. Source research dated 2026-11-26 remains historical. The full plan was received through the GitHub connector; four new/expanded reusable runtime modules were captured read-only with commit and per-file hashes in external `workhunt-agpl3-catalog-input/capture.json`. Other selected source changes were inspected at the same pinned revision. No source checkout/history, actual profile/CV/history, personal prompt, operational output, private fixture or completed synthetic CV was copied. This worker made no source-workspace writes; independent concurrent edits are outside a global byte-preservation claim.
 
@@ -16,7 +63,7 @@ Optional supplied effort, spending, replies, interviews and paid-engagement even
 
 All completed requests, coverage records, drafts, portfolio handoffs, selected CV evidence, outcome events/reports, eligibility assessments and packet/history output remain under ignored `.workhunt`. The English request template now parameterizes source selection while preserving invocation-only authority, current resolved brief precedence, private paths and empty shared preferences. There is no standing personal duration, minimum, role, country or legal-status default.
 
-## Current executed checks
+### Current executed checks
 
 The existing project environment ran, without dependency installation:
 
@@ -36,7 +83,7 @@ The inspected candidate has **1210 ordinary UTF-8 text files**: 691 Markdown, 70
 
 The synthetic legacy fixture is unchanged: 548 bytes, SHA-256 `ac52239e1d98d073323fb7d8375b60ffb21720fb7108a8efbb9336ae4e4a291f`. The private original fixture, private-history generator and personal prompt are absent. Actual source-package research/output and eligibility/packet archives are not bundled.
 
-## Independent installed-profile evidence (earlier phase)
+### Independent installed-profile evidence (earlier phase)
 
 Before the final audit-repair delta, independent worker `/root/installed_profile_qa` exercised one retained installed-package scenario and returned `QA_REPORT.txt`, `observations.json` and `integrity.json`. It installed all 17 packages into four isolated provider roots with spaces in their paths, resolved the shared root before any profile existed using explicit/current/local-binding precedence, read the actual synthetic CV and invoked the installed configure-profile helper. It did not substitute source helper imports or access a personal application.
 
@@ -44,7 +91,7 @@ The scenario preserved the unfinished qualification, unresolved conflicting date
 
 That evaluator observed all 1024 then-current release files and 76 shared assets unchanged, while two source history files changed concurrently. It made no writes to those source paths; causation was not established. Its first harness used a disposable context-mode directory that disappeared after a successful install; the retained scenario was repeated in persistent temporary storage. This harness issue is not a product defect. The evaluation predates the latest audit, manual-window, legacy-context and work-location changes; current installed/setup regression tests are included in the then-current 173-test suite, but this record does not claim a second fresh agent scenario after these later repairs.
 
-## Earlier failures and repairs retained as history
+### Earlier failures and repairs retained as history
 
 The initial generic release passed a 91-test suite. Earlier attempts exposed an interpreter without `tzdata` (no dependency was installed), an incomplete synthetic language alias, and two synthetic IDs accidentally sharing one URL. Fixtures were corrected without weakening gates. Broken derived-reference links were corrected. A separate early profile evaluator `/root/profile_forward_qa` identified a summary that did not fill the actual shared template; the helper was repaired and 26 targeted tests passed, followed by three mapper tests after punctuation cleanup. Its first assertion expected 15 rather than 71 assets; separate verification corrected that harness without rerunning population.
 
@@ -58,7 +105,7 @@ The preceding legacy-context release passed 158 tests in 160.715 seconds and nin
 
 The preceding work-location release passed 173 tests in 51.378 seconds. Its initial 172-test attempt had one failure: an older DST fixture used a future eligibility observation relative to its historical instant. The fixture timestamp was aligned without weakening the gate. Parent probes then found stale saved-country geography could override current preferences; the added country-switch regression failed before the fix and passed afterward, including renderer and both packet selectors. Current explicit profile countries now govern geography while saved briefs remain unchanged. Fourteen eligibility, nine legacy and four mapping clean-export regressions passed for that earlier 1051-file release. Logs and parent before/after probes remain external historical evidence.
 
-## Licensing and source provenance
+### Licensing and source provenance
 
 Canonical GNU `LICENSE` is unchanged: 34,523 bytes, SHA-256 `0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0`, originally downloaded from `https://www.gnu.org/licenses/agpl-3.0.txt`. Earlier parent comparison with official SPDX AGPL-3.0-only text agreed after whitespace and HTTP/HTTPS normalization; that is semantic corroboration, not byte equality with SPDX. Project-owned declarations remain AGPL-3.0-only.
 
@@ -68,7 +115,7 @@ TheRemoteFreelancer contributes attributed resource discovery/classification, no
 
 The supplied Job Hunt Kit identifies Shahar Bar and says "Free to share." Its PDF is not bundled. This is positive sharing-permission evidence, but explicit AGPL relicensing permission for inherited portions remains unresolved. Shahar Bar/Shahar Polak attribution and this limitation remain; the project license does not replace third-party rights.
 
-## Clean export and remaining boundary
+### Clean export and remaining boundary
 
 The previous 1051-file sibling export matched every filename and byte hash in task commit `89feaa5defa44a4896dad4e98bb9fa44dd29c35d`. After resolved-path and task-ownership checks it was preserved in a temporary backup, without deleting or overwriting unexpected user files. The refreshed sibling `workhunt-agpl3-export` contains **1210 files**, exactly matching the reviewed staged inventory. It contains no `.git`, private state, original legacy fixture/generator or personal prompt. Separate inspection passed English/privacy/syntax/local-link checks, pinned license/snapshot hashes and all 903 expected package comparisons. Evidence: `workhunt-agpl3-catalog-export-proof.json`.
 
@@ -84,6 +131,6 @@ Only this verified task-owned validation file was synchronized afterward. Full s
 
 No behavior changes follow the final full suite. Later changes are preparation documentation and synchronized documentation/reference copies only. Isolated placement does not prove live host discovery; synthetic CV mapping does not prove every document format. No personal account connection, upload, application, message, dependency installation or job-network collector was performed. Publication is authorized; this worker does not claim the parent publication action for this update.
 
-## Work-order record
+### Work-order record
 
 Implementation worker `/root/agpl3_executor` received `requested_model=gpt-6-astra`, `requested_reasoning_effort=xhigh`. Exact runtime model/effort metadata are unavailable. `mode_verified_from_work_order=true` proves the accepted explicit request only, not runtime identity. No substitution is claimed. The worker wrote code directly without nested delegation; parent verification and earlier named independent evaluations are distinguished above.

@@ -51,7 +51,10 @@ def plan(root=ROOT):
         if package.name == "workhunt-configure-profile":
             for source in (root / "templates").iterdir():
                 if source.is_file():
-                    updates[package / "assets" / source.name] = source.read_bytes()
+                    data = source.read_bytes()
+                    if source.name == "search-request.template.md":
+                        data = data.replace(b"(../workhunt_prompt.md)", b"(../../../workhunt_prompt.md)")
+                    updates[package / "assets" / source.name] = data
     return updates
 
 

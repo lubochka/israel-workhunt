@@ -1,5 +1,7 @@
 # Private search request
 
+Use the [complete manual-search workflow](../references/workspace/workhunt_prompt.md.md) for its research, qualification, recovery and delivery phases. This template supplies private invocation parameters; it does not replace that workflow.
+
 This is an unfilled request template, not execution authority. Fill it only from the current user's explicit instruction; save the completed request privately.
 
 - Candidate profile and evidence: {{private_profile_path}}, {{private_evidence_path}}
