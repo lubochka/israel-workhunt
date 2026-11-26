@@ -98,9 +98,45 @@ def related_records(job, records):
             remaining.remove(row)
 
 
-def history_decision(job, found, applied):
-    rows = related_records(job, found.get("opportunities", []) + applied.get("records", []))
-    suppressed, reported, possible, submitted = [], [], [], []
+def identity_groups(rows):
+    """Connected identity components; compute each record's keys once."""
+    rows = list(rows)
+    parents = list(range(len(rows)))
+    owners = {}
+    def root(index):
+        while parents[index] != index:
+            parents[index] = parents[parents[index]]
+            index = parents[index]
+        return index
+    for index, row in enumerate(rows):
+        for key in identity_keys(row):
+            if key in owners:
+                parents[root(index)] = root(owners[key])
+            else:
+                owners[key] = index
+    grouped = {}
+    for index, row in enumerate(rows):
+        grouped.setdefault(root(index), []).append(row)
+    return list(grouped.values())
+
+
+class IdentityLookup:
+    def __init__(self, rows):
+        self.groups = identity_groups(rows)
+        self.keys = {}
+        for index, group in enumerate(self.groups):
+            for row in group:
+                for key in identity_keys(row):
+                    self.keys[key] = index
+
+    def related(self, row):
+        indexes = {self.keys[key] for key in identity_keys(row) if key in self.keys}
+        return [item for index in sorted(indexes) for item in self.groups[index]]
+
+
+def history_decision(job, found, applied, index=None):
+    rows = index.related(job) if index is not None else related_records(job, found.get("opportunities", []) + applied.get("records", []))
+    suppressed, reported, possible, submitted, unresolved = [], [], [], [], []
     for row in rows:
         history = row.get("history") if isinstance(row.get("history"), dict) else {}
         if row.get("suppress_from_new_results") is True or history.get("suppress_from_new_results") is True or history.get("suppress_repeat_recommendation") is True or row.get("status") == "suppressed":
@@ -111,7 +147,9 @@ def history_decision(job, found, applied):
             possible.append(row.get("id"))
         if application_state(row) in {"submitted_observed", "receipt_observed", "user_reported_submitted", "response_received", "platform_verified_historical_application"}:
             submitted.append(row.get("id"))
-    state = "suppressed" if suppressed else "already_applied" if submitted else "previously_reported" if reported else "possible_duplicate" if possible else "new"
+        if history.get("decision") in {"unresolved", "needs_clarification"} or history.get("newness_qualified") is False:
+            unresolved.append(row.get("id"))
+    state = "suppressed" if suppressed else "already_applied" if submitted else "previously_reported" if reported else "possible_duplicate" if possible else "unresolved" if unresolved else "new"
     return {"state": state, "matched_ids": list(dict.fromkeys(r.get("id") for r in rows)), "newness_qualified": state == "new"}
 
 
@@ -132,17 +170,23 @@ def merge_discovery(found, jobs, run):
     result = copy.deepcopy(found)
     result.pop("_history_available", None)
     result.setdefault("opportunities", [])
-    for job in jobs:
-        matches = related_records(job, result["opportunities"])
-        if matches:
-            row = matches[0]
+    existing_ids = {id(row) for row in result["opportunities"]}
+    for group in identity_groups(result["opportunities"] + list(jobs)):
+        existing = [row for row in group if id(row) in existing_ids]
+        incoming = [row for row in group if id(row) not in existing_ids]
+        if not incoming:
+            continue
+        if existing:
+            row = existing[0]
+        else:
+            row = copy.deepcopy(incoming.pop(0))
+            result["opportunities"].append(row)
+        for job in incoming:
             row.setdefault("observations", []).append(copy.deepcopy(job))
             row.setdefault("source_aliases", [])
             for alias in (job.get("url"), {"id": job["id"]}):
                 if alias and alias not in row["source_aliases"]:
                     row["source_aliases"].append(alias)
-        else:
-            result["opportunities"].append(copy.deepcopy(job))
     result.setdefault("search_runs", []).append(copy.deepcopy(run))
     result["updated_at"] = run["checked_at"]
     return result

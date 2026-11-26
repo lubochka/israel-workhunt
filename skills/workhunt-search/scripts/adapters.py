@@ -5,7 +5,7 @@ import io
 import json
 import urllib.parse as up
 import xml.etree.ElementTree as ET
-from records import related_records, url_identity
+from records import identity_groups, url_identity
 
 
 class FetchResult(list):
@@ -32,7 +32,8 @@ def smart_normalize(board, rows, plain):
         if not ident:
             raise ValueError("SmartRecruiters posting has no exact ID")
         sections = (row.get("jobAd") or {}).get("sections") or {}
-        complete = row.get("_detail_complete") is not False and isinstance(sections, dict) and all(isinstance(sections.get(k), dict) for k in ("jobDescription", "qualifications"))
+        sections = sections if isinstance(sections, dict) else {}
+        complete = row.get("_detail_complete") is not False and all(isinstance(sections.get(k), dict) for k in ("jobDescription", "qualifications")) and bool(plain(sections.get("jobDescription", {}).get("text")))
         text = "\n\n".join(plain(value.get("title") or key) + "\n" + plain(value.get("text", ""))
                            for key, value in sections.items() if isinstance(value, dict))
         locations = [row["location"]] if row.get("location") else []
@@ -71,16 +72,18 @@ def smart_fetch(board, get, plain):
                 raise ValueError("SmartRecruiters pagination stopped before totalFound")
             for item, ident in zip(items, ids):
                 seen.add(ident)
+                available = item
                 try:
                     detail = json.loads(get(base + "/" + up.quote(ident, safe="")))
                     if not isinstance(detail, dict) or str(detail.get("id") or detail.get("uuid") or "") != ident:
                         raise ValueError("SmartRecruiters detail identity mismatch")
+                    available = {**item, **detail}
                     sections = (detail.get("jobAd") or {}).get("sections")
-                    if not isinstance(sections, dict) or not all(isinstance(sections.get(k), dict) for k in ("jobDescription", "qualifications")):
+                    if not isinstance(sections, dict) or not all(isinstance(sections.get(k), dict) for k in ("jobDescription", "qualifications")) or not plain(sections.get("jobDescription", {}).get("text")):
                         raise ValueError("SmartRecruiters detail has no full description sections")
                     rows.append({**item, **detail, "_detail_complete": True})
                 except Exception as exc:
-                    rows.append({**item, "_detail_complete": False})
+                    rows.append({**available, "_detail_complete": False})
                     errors.append({"job_id": ident, "error": type(exc).__name__ + ": detail unavailable or incomplete"})
             offset += len(items)
             if len(seen) >= maximum_total:
@@ -155,17 +158,22 @@ def recruitee_parse(board, text, plain):
 
 
 def deduplicate_discoveries(jobs):
+    def unique(values):
+        return list({json.dumps(value, sort_keys=True, ensure_ascii=False): value for value in values}.values())
+
+    def observation(job):
+        keys = ("id", "url", "board_key", "source", "provenance", "source_payload", "first_published_at", "last_published_at", "updated_at", "source_updated_at", "source_updated_precision", "released_at", "feed_added_at")
+        return {key: job[key] for key in keys if key in job}
+
     result = []
-    for job in jobs:
-        matches = related_records(job, result)
-        if not matches:
-            result.append(job)
-            continue
-        previous = matches[0]
-        preferred, secondary = (job, previous) if job.get("description") and not previous.get("description") else (previous, job)
-        merged = dict(preferred)
-        merged["source_aliases"] = preferred.get("source_aliases", []) + [{"id": secondary["id"], "url": secondary.get("url", "")}]
-        merged["discovery_categories"] = list(dict.fromkeys(previous.get("discovery_categories", []) + job.get("discovery_categories", [])))
-        merged["discovery_sources"] = previous.get("discovery_sources", []) + [{"id": secondary["id"], "board_key": secondary["board_key"], "provenance": secondary.get("provenance"), "source_updated_at": secondary.get("source_updated_at")}]
-        result[result.index(previous)] = merged
+    for group in identity_groups(jobs):
+        previous = group[0]
+        for job in group[1:]:
+            preferred, secondary = (job, previous) if job.get("description") and not previous.get("description") else (previous, job)
+            merged = dict(preferred)
+            merged["source_aliases"] = unique(preferred.get("source_aliases", []) + secondary.get("source_aliases", []) + [{"id": secondary["id"], "url": secondary.get("url", "")}])
+            merged["discovery_categories"] = list(dict.fromkeys(previous.get("discovery_categories", []) + job.get("discovery_categories", [])))
+            merged["discovery_sources"] = unique(previous.get("discovery_sources", []) + job.get("discovery_sources", []) + [observation(previous), observation(job)])
+            previous = merged
+        result.append(previous)
     return result

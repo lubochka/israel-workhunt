@@ -5,7 +5,7 @@ import re
 import urllib.parse as up
 from pathlib import Path
 from records import load, save
-from profile_config import private_root, private_path
+from profile_config import private_root, private_path, shared_root
 
 UPSTREAM_REVISION = "7e3a2a8a21c7bea967ddccf6812163ee45adc2f2"
 UPSTREAM_URL = f"https://raw.githubusercontent.com/ahiraz/israel-job-search/{UPSTREAM_REVISION}/data/companies.json"
@@ -98,7 +98,7 @@ def build_registry(rows, existing=None, snapshot_sha256=None, source_url=UPSTREA
             "license_file": "upstream/israel-job-search/LICENSE"}, "boards": sorted(boards.values(), key=lambda b: b["key"])}
 
 
-def effective_boards(registry, overrides=None):
+def effective_boards(registry, overrides=None, include_disabled=False):
     overrides = overrides or {}
     corrections = overrides.get("boards", {})
     boards = []
@@ -110,21 +110,27 @@ def effective_boards(registry, overrides=None):
             raise ValueError("Invalid provider/tenant in local override")
         if board["key"] != f"{board['provider']}:{board.get('region', '')}:{board['tenant'].lower()}":
             raise ValueError("Provider/tenant correction requires a new stable board identity")
-        if board.get("enabled", True):
+        if include_disabled or board.get("enabled", True):
             boards.append(board)
     if len({b["key"] for b in boards}) != len(boards):
         raise ValueError("Duplicate effective registry keys")
     return sorted(boards, key=lambda b: (b.get("priority", 100), b["key"]))
 
 
-def load_boards(workdir, profile):
+def load_boards(workdir, profile, include_disabled=False):
     root = private_root(workdir)
-    registry = load(private_path(root, profile.get("employer_registry", "sources/employer-boards.json")))
+    relative = profile.get("employer_registry", "sources/employer-boards.json")
+    registry_file = private_path(root, relative)
+    if not registry_file.exists():
+        registry_file = (shared_root(workdir) / relative).resolve()
+        if not registry_file.is_relative_to(shared_root(workdir)):
+            raise ValueError("Shared registry must stay inside the selected release root")
+    registry = load(registry_file)
     if not registry:
         raise ValueError("Configured employer registry is missing")
     overrides = load(private_path(root, profile.get("employer_overrides", "sources/employer-overrides.json")), {})
-    boards = effective_boards(registry, overrides)
-    health = load(private_path(root, profile.get("source_health", "sources/source-health.json")), {}).get("sources", {})
+    boards = effective_boards(registry, overrides, include_disabled)
+    health = load(private_path(root, profile.get("source_health_file", profile.get("source_health", "sources/source-health.json"))), {}).get("sources", {})
     for board in boards:
         if board["key"] in health:
             board["health"] = health[board["key"]]
@@ -133,7 +139,7 @@ def load_boards(workdir, profile):
 
 def record_source_checks(workdir, profile, checks, checked_at):
     """Persist only actual collector observations; retain last success across failures."""
-    path = private_path(workdir, profile.get("source_health", "sources/source-health.json"))
+    path = private_path(workdir, profile.get("source_health_file", profile.get("source_health", "sources/source-health.json")))
     data = load(path, {"schema_version": 1, "sources": {}})
     for check in checks:
         status = check["status"]

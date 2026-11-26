@@ -1,6 +1,8 @@
 """Synchronize only shared English authorities and empty templates; never private state."""
 import argparse
 import json
+import sys
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent))
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -19,6 +21,9 @@ def plan(root=ROOT):
     ledger = json.loads((root / "templates/profile-evidence.template.json").read_text(encoding="utf-8"))
     if any(ledger.get(key) for key in ("sources", "facts", "conflicts", "unknowns", "decisions")):
         raise ValueError("Shared evidence template must remain empty")
+    manifest = json.loads((root / "templates/cv-manifest.template.json").read_text(encoding="utf-8"))
+    if manifest.get("versions") or manifest.get("historical_references"):
+        raise ValueError("Shared CV manifest template must remain empty")
     updates = {}
     authorities = {"context.md": "docs/skills/WORKHUNT_CONTEXT.md", "playbook.md": "JOB_SEARCH_PLAYBOOK.md", "tracking.md": "docs/skills/JOB_TRACKING.md", "opportunity-sources.json": "sources/opportunity-sources.json", "third-party-notices.md": "THIRD_PARTY_NOTICES.md", "upstream-license.txt": "sources/upstream/israel-job-search/LICENSE", "FREELANCE_PROJECT_SOURCES.md": "docs/FREELANCE_PROJECT_SOURCES.md", "REMOTE_JOB_FEEDS.md": "docs/REMOTE_JOB_FEEDS.md"}
     for package in packages(root):
@@ -44,11 +49,6 @@ def plan(root=ROOT):
             for source in (root / "templates").iterdir():
                 if source.is_file():
                     updates[package / "assets" / source.name] = source.read_bytes()
-        contents = {p.relative_to(package): p.read_bytes() for p in package.rglob("*") if p.is_file() and "__pycache__" not in p.parts and p.suffix != ".pyc"}
-        contents.update({p.relative_to(package): data for p, data in updates.items() if p.is_relative_to(package)})
-        for provider in PROVIDERS:
-            for rel, data in contents.items():
-                updates[root / provider / "skills" / package.name / rel] = data
     return updates
 
 
@@ -60,6 +60,13 @@ def refresh(root=ROOT, check=False):
         for path, data in changes:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
+    import install_workhunt_skills as installer
+    files, originals, _ = installer.package(Path(root))
+    roots = [Path(root) / host / "skills" for host in PROVIDERS]
+    for destination in roots:
+        installer.plan_install(destination, files, originals, Path(root), check, adopt_project=True)
+    for destination in roots:
+        installer.install(destination, check, Path(root), adopt_project=True)
     return {"packages": len(packages(Path(root))), "changed_files": len(changes), "check_only": check}
 
 

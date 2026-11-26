@@ -2,6 +2,7 @@
 import argparse
 import copy
 import datetime as dt
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -9,21 +10,30 @@ import sys
 
 PACKAGE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PACKAGE.parent / "workhunt-search/scripts"))
-from profile_config import private_root, validate_profile
+from profile_config import private_root, private_path, validate_profile
 
 FACT_FIELDS = {"name", "headline", "identity", "capabilities", "experience", "education", "languages"}
 SETTING_FIELDS = {"tracks", "eligible_countries", "location_pattern", "timezone", "language", "limited_experience", "degree_policy", "preferences", "search_brief", "directory_enabled", "directory_url", "employer_registry_enabled", "employer_registry", "employer_overrides", "source_health", "techmap_enabled", "techmap_categories", "extra_boards", "manual_sources", "matching_aliases", "project_employment_pattern"}
-OUTPUTS = {"profile.json": "profile.template.json", "profile-evidence.json": "profile-evidence.template.json", "professional-summary.md": "professional-summary.template.md"}
+OUTPUTS = {"profile.json": "profile.template.json", "profile-evidence.json": "profile-evidence.template.json", "professional-summary.md": "professional-summary.template.md", "cv-manifest.json": "cv-manifest.template.json"}
 
 
-def initialize(workspace):
+def template_root(shared=None):
+    if shared is None:
+        return PACKAGE / "assets"
+    from workspace import resolve_workspace
+    return resolve_workspace(explicit=shared) / "templates"
+
+
+def initialize(workspace, shared=None):
     root = private_root(workspace)
+    templates = template_root(shared)
+    contents = {output: (templates / template).read_bytes() for output, template in OUTPUTS.items()}
     for output, template in OUTPUTS.items():
         if (root / output).exists():
             raise ValueError("Existing private profile output must be reviewed, not overwritten: " + output)
     root.mkdir(parents=True, exist_ok=True)
     for output, template in OUTPUTS.items():
-        (root / output).write_bytes((PACKAGE / "assets" / template).read_bytes())
+        (root / output).write_bytes(contents[output])
     return root
 
 
@@ -46,8 +56,8 @@ def non_overlapping_days(intervals):
     return sum((end - start).days for start, end in merged)
 
 
-def map_ledger(ledger):
-    profile = json.loads((PACKAGE / "assets/profile.template.json").read_text(encoding="utf-8"))
+def map_ledger(ledger, shared=None):
+    profile = json.loads((template_root(shared) / "profile.template.json").read_text(encoding="utf-8"))
     evidence = copy.deepcopy(ledger)
     sources = {s["id"] for s in evidence.get("sources", [])}
     seen = set()
@@ -106,9 +116,9 @@ def map_ledger(ledger):
     return profile, evidence
 
 
-def render_summary(profile, evidence):
+def render_summary(profile, evidence, shared=None):
     """Fill the shared summary contract using supported facts and explicit preferences."""
-    template = (PACKAGE / "assets/professional-summary.template.md").read_text(encoding="utf-8")
+    template = (template_root(shared) / "professional-summary.template.md").read_text(encoding="utf-8")
     confirmed_tracks = any(d.get("target") == "tracks" and d.get("kind") == "user_confirmation" for d in evidence.get("decisions", []))
     target_role = ", ".join(str(rule.get("label") or key) for key, rule in profile.get("tracks", {}).items()) if confirmed_tracks else ""
     capabilities = "; ".join(str(item.get("name") or "Unnamed supported capability") for item in profile.get("capabilities", []))
@@ -168,24 +178,70 @@ def render_summary(profile, evidence):
     return re.sub(r"\{\{([a-z_]+)\}\}", replace, template)
 
 
-def populate(workspace, ledger):
-    """Fill new or untouched private templates; preserve populated candidate/history data."""
-    profile, evidence = map_ledger(ledger)
+def cv_version(path, language=None, roles=None, selection_evidence=None, content_review=None, unresolved=None):
+    """Measure an explicitly selected local file; never infer preferences or review."""
+    path = Path(path).expanduser().resolve()
+    if not path.is_file():
+        raise ValueError("Explicitly selected CV file is missing")
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    at = dt.datetime.now(dt.timezone.utc).isoformat()
+    if (language or roles) and not selection_evidence:
+        raise ValueError("CV language/role mapping needs supported selection evidence")
+    if content_review and not (content_review.get("status") == "reviewed" and content_review.get("evidence") and content_review.get("sha256") == digest):
+        raise ValueError("Content review must cite evidence for the exact measured file")
+    unknowns = list(unresolved or [])
+    if not language:
+        unknowns.append("Language not established")
+    if not roles:
+        unknowns.append("Role mapping not established; career headline is not a desired role")
+    return {"version_id": "cv-" + digest[:16] + "-" + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"),
+            "path": str(path), "sha256": digest, "measured_at": at, "language": language,
+            "roles": list(roles or []), "selection_status": "current" if language and roles and selection_evidence else "unresolved",
+            "selection_evidence": selection_evidence, "content_review": content_review or {"status": "not_reviewed", "evidence": None},
+            "unresolved_facts": unknowns}
+
+
+def register_cv(workspace, path, **mapping):
+    """Append private versions without retiring another version by guesswork."""
     root = private_root(workspace)
+    profile = json.loads((root / "profile.json").read_text(encoding="utf-8"))
+    manifest_path = private_path(root, profile.get("cv_manifest", "cv-manifest.json"))
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {"schema_version": 1, "versions": [], "historical_references": []}
+    version = cv_version(path, **mapping)
+    manifest.setdefault("versions", []).append(version)
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return version
+
+
+def populate(workspace, ledger, selected_cv=None, cv_mapping=None, shared=None):
+    """Fill new or untouched private templates; preserve populated candidate/history data."""
+    profile, evidence = map_ledger(ledger, shared)
+    root = private_root(workspace)
+    templates = template_root(shared)
     for name, template in OUTPUTS.items():
-        if (root / name).exists() and (root / name).read_bytes() != (PACKAGE / "assets" / template).read_bytes():
+        if name == "cv-manifest.json":
+            continue  # Previous private CV versions are retained below.
+        if (root / name).exists() and (root / name).read_bytes() != (templates / template).read_bytes():
             raise ValueError("Existing private profile output requires a reviewed update: " + name)
-    summary = render_summary(profile, evidence)
+    summary = render_summary(profile, evidence, shared)
+    manifest_path = private_path(root, profile["cv_manifest"])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else json.loads((templates / "cv-manifest.template.json").read_text(encoding="utf-8"))
+    if selected_cv:
+        manifest["versions"].append(cv_version(selected_cv, **(cv_mapping or {})))
     root.mkdir(parents=True, exist_ok=True)
     (root / "profile.json").write_text(json.dumps(profile, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (root / "profile-evidence.json").write_text(json.dumps(evidence, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (root / "professional-summary.md").write_text(summary, encoding="utf-8")
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return root
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("workspace", type=Path)
+    parser.add_argument("--shared-workspace", type=Path, help="Shared release root; resolved without a private profile")
     parser.add_argument("--initialize", action="store_true", required=True, help="Create empty private copies; never parse or upload a CV")
     args = parser.parse_args()
-    print(initialize(args.workspace))
+    print(initialize(args.workspace, args.shared_workspace))

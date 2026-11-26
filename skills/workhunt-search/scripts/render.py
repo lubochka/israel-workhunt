@@ -4,7 +4,7 @@ import datetime as dt
 import json
 from pathlib import Path
 from scan import web_url
-from profile_config import private_root, load_profile
+from profile_config import private_root, load_profile, safe_output
 from records import load, read_store, display_job, related_records, application_state
 from qualification import qualify, search_brief
 from zoneinfo import ZoneInfo
@@ -37,10 +37,11 @@ def canonical_review(job):
     return review
 
 
-def render(workdir, run=None, fixture=False, output=None):
+def render(workdir, run=None, fixture=False, output=None, search_run_id=None):
     profile = load_profile(workdir)
     workdir = private_root(workdir)
     folder = workdir / ("fixture-runs" if fixture else "runs")
+    explicit_scan_run = run is not None
     if run is None:
         candidates = sorted(p for p in folder.glob("*") if p.is_dir() and (p / "meta.json").exists())
         run = candidates[-1] if candidates else None
@@ -65,7 +66,16 @@ def render(workdir, run=None, fixture=False, output=None):
     reviews = {} if fixture else load(workdir / "reviews.json", {})
     legacy_applications = {} if fixture else load(workdir / "applications.json", {})
     now = dt.datetime.now(ZoneInfo(profile["timezone"]))
-    brief = search_brief(profile, now, meta.get("search_brief"))
+    canonical_runs = found.get("search_runs", [])
+    selected_id = search_run_id or found.get("active_run_id")
+    selected_run = next((r for r in canonical_runs if r.get("id") == selected_id), None) if selected_id else (canonical_runs[-1] if canonical_runs else None)
+    if selected_id and selected_run is None:
+        raise ValueError("Selected canonical search run does not exist")
+    saved_brief = meta.get("search_brief")
+    if selected_run and not explicit_scan_run:
+        saved_brief = {**profile.get("search_brief", {}), **selected_run.get("search_brief", {}),
+                       **{k: selected_run[k] for k in ("window_start", "window_end", "requested_minimum", "run_type") if k in selected_run}}
+    brief = search_brief(profile, now, saved_brief)
     for j in jobs:
         review = {**reviews.get(j["id"], {}), **canonical_review(j)}
         j["review"] = effective_review(j, review, profile, now, found, applied, brief)
@@ -77,15 +87,16 @@ def render(workdir, run=None, fixture=False, output=None):
         j.pop("source_payload", None)
     qualified_count = sum(j["review"]["qualified"] for j in jobs)
     data = {"name": profile["name"], "headline": profile["headline"], "tracks": {k: v["label"] for k, v in profile["tracks"].items()},
-            "fixture_mode": fixture, "meta": meta, "search_brief": brief, "qualified_count": qualified_count,
+            "fixture_mode": fixture, "meta": meta, "search_brief": brief,
+            "selected_run": {k: selected_run[k] for k in ("id", "status", "qualified_count", "actual_qualified_count", "requested_minimum", "window_start", "window_end") if k in selected_run} if selected_run else None,
+            "qualified_count": qualified_count,
             "shortfall": max(0, brief["requested_minimum"] - qualified_count) if brief["requested_minimum"] is not None else None, "jobs": jobs, "failed": load(run / "failed.json", []) if run else [],
             "changes": load(run / "changes.json", []) if run else [], "manual_sources": profile.get("manual_sources", [])}
     text = (HERE.parent / "assets" / "page.html").read_text(encoding="utf-8")
     blob = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     text = text.replace("/*__DATA__*/", blob)
     output = Path(output).resolve() if output else workdir / ("fixture-preview.html" if fixture else "jobs.html")
-    if not output.is_relative_to(workdir):
-        raise ValueError("Rendered candidate data must stay inside .workhunt")
+    output = safe_output(workdir, output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(text, encoding="utf-8")
     if run and output.parent == workdir:
@@ -99,5 +110,6 @@ if __name__ == "__main__":
     parser.add_argument("--run", type=Path)
     parser.add_argument("--fixture", action="store_true")
     parser.add_argument("--output", type=Path, help="Optional local preview path; never changes canonical records")
+    parser.add_argument("--search-run", help="Select a canonical fixed-window search run by ID")
     args = parser.parse_args()
-    print(render(args.workdir, args.run, args.fixture, args.output))
+    print(render(args.workdir, args.run, args.fixture, args.output, args.search_run))
