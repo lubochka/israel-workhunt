@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from records import history_decision, norm, timestamp, url_identity
 from work_eligibility import assess as assess_work_eligibility
 from routes import normalize_route, route_evidence_recorded
-from opportunity_types import source_access_record
+from opportunity_types import identified_project, project_alternatives, project_scope_evidence, route_owner_matches, scope_capabilities, source_access_record, supported_text
 
 LOGIN_LABEL = "Login required; not verified beyond this point"
 
@@ -249,6 +249,27 @@ def freshness(review, brief, job=None, now=None):
     return {"passed": False, "reason": "No supported publication/refresh interval wholly inside the applicable fixed window", "window": window}
 
 
+def stack_scope(job, review, brief):
+    """Separate explicitly selected buyer-project alternatives from employment criteria."""
+    stack = review.get("stack") if isinstance(review.get("stack"), dict) else {}
+    required = brief["required_stack"]
+    ordinary = all(stack.get(key) is True for key in required) and supported_text(stack.get("evidence"))
+    result = {"passed": ordinary, "path": "required_stack", "required_stack": list(required)}
+    if ordinary:
+        return result
+    role = review.get("role") if isinstance(review.get("role"), dict) else {}
+    scope = project_scope_evidence(job, review)
+    if (identified_project(job, review) and not source_access_record(job, review) and scope
+            and role.get("track") == "projects" and "projects" in brief["tracks"] and supported_text(stack.get("evidence"))):
+        for alternative in project_alternatives(brief.get("project_stack_policy")):
+            capabilities = scope_capabilities(scope, alternative)
+            if all(stack.get(key) is True and capabilities.get(key) is True for key in alternative["required_capabilities"]):
+                return {"passed": True, "path": "client_project_alternative", "alternative_id": alternative["id"],
+                        "required_stack": list(alternative["required_capabilities"]), "evidence": copy.deepcopy(scope),
+                        "backend_requirement": "All actual client requirements remain in CV scoring"}
+    return result
+
+
 def qualify(job, review, brief, now, found=None, applied=None, history_index=None, profile=None):
     review = copy.deepcopy(review or {})
     score = score_requirements(review.get("requirements", []))
@@ -278,7 +299,7 @@ def qualify(job, review, brief, now, found=None, applied=None, history_index=Non
     history = history_decision(job, found or {"opportunities": []}, applied or {"records": []}, history_index)
     history_known = found is not None and applied is not None and found.get("_history_available", True) and applied.get("_history_available", True)
     role = review.get("role") if isinstance(review.get("role"), dict) else {}
-    stack = review.get("stack") if isinstance(review.get("stack"), dict) else {}
+    stack_check = stack_scope(job, review, brief)
     geography = review.get("geography") if isinstance(review.get("geography"), dict) else {}
     degree = review.get("degree_status")
     policy = brief.get("degree_policy", {})
@@ -292,16 +313,16 @@ def qualify(job, review, brief, now, found=None, applied=None, history_index=Non
     description = bool(job.get("description_complete") is not False and (job.get("description") or review.get("description_evidence")) and (review.get("full_description_read") is True or job.get("full_description_read") is True))
     checked = timestamp(route.get("checked_at"))
     identity = norm(route.get("job_identifier"))
-    expected = {norm(job.get(k)) for k in ("id", "job_id", "source_job_id", "employer_requisition_id", "title")} - {""}
-    specific = identity in expected and bool(route.get("evidence")) and bool(url_identity(route.get("source_url")))
-    listing_urls = {url_identity(job.get(k)) for k in ("url", "source_url")} - {""}
+    expected = {norm(job.get(k)) for k in ("id", "job_id", "source_job_id", "project_id", "employer_requisition_id", "title")} - {""}
+    specific = identity in expected and supported_text(route.get("evidence")) and bool(url_identity(route.get("source_url")))
+    listing_urls = {url_identity(job.get(k)) for k in ("url", "source_url", "listing_url")} - {""}
     linked = url_identity(route.get("source_url")) in listing_urls or (
         url_identity(route.get("listing_url")) in listing_urls
-        and norm(route.get("employer")) == norm(job.get("company") or job.get("employer_or_client"))
-        and bool(route.get("navigation_evidence")))
+        and route_owner_matches(job, route, review)
+        and supported_text(route.get("navigation_evidence")))
     specific = specific and linked
     current = checked is not None and 0 <= (now.astimezone(dt.timezone.utc) - checked.astimezone(dt.timezone.utc)).total_seconds() <= 24 * 3600
-    route_pass = specific and current and route_evidence_recorded(route, allow_proposal=job.get("type") == "project")
+    route_pass = specific and current and route_evidence_recorded(route, allow_proposal=identified_project(job, review))
     if route.get("status") == "login_required":
         route["label"] = {"he": "דורש התחברות; לא אומת מעבר לכך", "ru": "Требуется вход; дальнейшая проверка не выполнена"}.get(brief.get("language"), LOGIN_LABEL)
     fresh = freshness(review, brief, job, now)
@@ -309,7 +330,7 @@ def qualify(job, review, brief, now, found=None, applied=None, history_index=Non
         "description": description,
         "cv_fit": score["passes"],
         "role": role.get("track") in brief["tracks"] and role.get("confirmed") is True and bool(role.get("evidence")),
-        "stack": all(stack.get(k) is True for k in brief["required_stack"]) and bool(stack.get("evidence")),
+        "stack": stack_check["passed"],
         "geography": geography.get("eligible") is True and bool(geography.get("evidence")) and bool({norm(c) for c in geography.get("eligible_from", [])} & {norm(c) for c in (profile or {}).get("eligible_countries", [])}),
         "education": degree_pass and bool(review.get("degree_evidence")),
         "route": bool(route_pass), "freshness": fresh["passed"],
@@ -323,5 +344,5 @@ def qualify(job, review, brief, now, found=None, applied=None, history_index=Non
     state = history["state"] if history["state"] != "new" else "excluded" if hard or requested == "exclude" else "qualified_new" if qualified else "needs_clarification"
     fit = "exclude" if state in {"suppressed", "already_applied", "previously_reported", "excluded"} else "strong" if qualified else "unreviewed" if requested == "unreviewed" else "clarify"
     return {**review, "fit": fit, "decision": state, "qualified": qualified and state == "qualified_new",
-            "score": score, "checks": checks, "history_check": history, "freshness_check": fresh, "work_eligibility_check": work_eligibility,
+            "score": score, "checks": checks, "stack_check": stack_check, "history_check": history, "freshness_check": fresh, "work_eligibility_check": work_eligibility,
             "hard_exclusions": hard, "verification_gaps": hard + gaps, "route": route}

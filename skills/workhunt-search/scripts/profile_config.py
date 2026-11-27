@@ -121,6 +121,22 @@ def validate_profile(profile):
         raise ValueError(f"{SETUP}: search_brief.tracks must select at least one track")
     if set(selected) - set(tracks):
         raise ValueError(f"{SETUP}: search_brief references an unknown track")
+    project_policy = brief.get("project_stack_policy")
+    if project_policy is not None and not isinstance(project_policy, dict):
+        raise ValueError(f"{SETUP}: project_stack_policy must be an object")
+    project_policy = project_policy or {}
+    generic = "configured" in project_policy or "alternatives" in project_policy
+    if "configured" in project_policy and type(project_policy["configured"]) is not bool:
+        raise ValueError(f"{SETUP}: project_stack_policy.configured must be a boolean")
+    enabled = project_policy.get("configured") is True if generic else project_policy.get("angular_frontend_without_dotnet") is True
+    if enabled:
+        from opportunity_types import project_alternatives
+        alternatives = project_alternatives(project_policy)
+        if not alternatives:
+            raise ValueError(f"{SETUP}: enabled project_stack_policy needs valid alternatives, capability keys and restrictive discovery_patterns")
+        for alternative in alternatives:
+            for key, pattern in alternative["discovery_patterns"].items():
+                restricted_pattern(pattern, f"project_stack_policy.{alternative['id']}.discovery_patterns.{key}")
     for name in ("directory_enabled", "employer_registry_enabled", "techmap_enabled"):
         if name in profile and type(profile[name]) is not bool:
             raise ValueError(f"{SETUP}: {name} must be a boolean")

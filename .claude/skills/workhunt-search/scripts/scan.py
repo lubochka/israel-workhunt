@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 from profile_config import load_profile, private_root, validate_profile
 from records import IdentityLookup, read_store, history_decision, merge_discovery, save as save_canonical
 from qualification import search_brief, qualify
+from opportunity_types import project_alternatives, project_discovery_candidate, source_access_record
 from source_registry import board_from, load_boards, record_source_checks, TECHMAP_CATEGORIES
 from adapters import FetchResult, smart_normalize, smart_fetch, techmap_parse, recruitee_parse, deduplicate_discoveries
 
@@ -175,7 +176,7 @@ def fetch(board):
 
 
 def classify(job, profile):
-    text = job["title"] + "\n" + job["description"]
+    text = job["title"] + "\n" + job.get("description", "")
     # User-confirmed aliases affect discovery only, never the original source text.
     for alias in profile.get("matching_aliases", []):
         text = re.sub(alias["pattern"], alias["replacement"], text, flags=re.I)
@@ -187,8 +188,18 @@ def classify(job, profile):
     if "projects" in profile["tracks"] and "projects" not in tracks and project_pattern and re.search(project_pattern, str(job.get("employment_type", "")), re.I):
         if all(re.search(rx, text, re.I) for rx in profile["tracks"]["projects"]["stack_all"]):
             tracks.append("projects")
+    # Buyer-project titles can be generic. These configured hints are not qualification.
+    project_hint = False
+    if ("projects" in profile["tracks"] and project_discovery_candidate(job, job.get("review"))
+            and not source_access_record(job, job.get("review"))):
+        for alternative in project_alternatives((profile.get("search_brief") or {}).get("project_stack_policy")):
+            if all(re.search(pattern, text, re.I) for pattern in alternative["discovery_patterns"].values()):
+                project_hint = True
+                if "projects" not in tracks:
+                    tracks.append("projects")
+                break
     # Keep the evidence; hints never declare eligibility or a completed degree.
-    degree = [x.strip() for x in re.split(r"[\n.;]", job["description"]) if re.search(r"bachelor|degree|תואר|השכלה", x, re.I)]
+    degree = [x.strip() for x in re.split(r"[\n.;]", job.get("description", "")) if re.search(r"bachelor|degree|תואר|השכלה", x, re.I)]
     location = job.get("location", "")
     allowed = {str(c).casefold() for c in profile["eligible_countries"]}
     countries = {str(c).casefold() for c in job.get("countries_stated", [])}
@@ -198,7 +209,7 @@ def classify(job, profile):
     if job.get("provider") == "techmap":
         local = False  # A discovery-only city is not country or eligibility evidence.
     return {**job, "tracks": tracks, "location_scope": "configured_geography" if local else "needs_location_check",
-            "track_match_kind": "provisional_title_only" if job.get("description_status") == "discovery_only" else "title_and_stack_hint",
+            "track_match_kind": "provisional_project_hint" if project_hint and (not job.get("description") or job.get("description_complete") is False or job.get("description_status") == "discovery_only") else "identified_project_stack_hint" if project_hint else "provisional_title_only" if job.get("description_status") == "discovery_only" else "title_and_stack_hint",
             "education_excerpts": degree, "fit_status": "unreviewed"}
 
 

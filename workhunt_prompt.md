@@ -39,6 +39,8 @@ Read [runtime commands](docs/WORKHUNT_RUNTIME.md) and the [runtime schema](skill
 
 Pursue the resolved requested minimum across the selected engagement types. A minimum is a target, not a guarantee or an automatic stopping rule. Respect an explicit cap; otherwise continue accessible planned coverage without inventing one. When jobs and projects are both requested, research both throughout the run; extra jobs do not substitute for an unsearched project lane, and no quota per category is implied.
 
+Snapshot the explicitly confirmed employment `required_stack` and separate `project_stack_policy` in each new authorized brief. Reusing a saved brief preserves its exact project policy or absence; current country/work-path checks remain independent.
+
 Use only the profile/request's chosen role families, seniority, capabilities, accepted alternatives and engagement types. Search development, hands-on leadership, analysis or other families separately when selected. Concrete paid work may involve implementation, modernization, integration, performance, review or temporary leadership when supported and requested. Determine type from the actual brief, not the platform name. Label a genuinely accepted alternative; adjacent stacks, delivery-only work or other tracks require explicit inclusion. Broad discovery patterns do not change qualification criteria.
 
 After reading the complete description, apply the exact fit rule:
@@ -75,6 +77,8 @@ Include every configured Techmap category in planning, with separate discovery p
 Use applicable selected channels such as Himalayas, Remote OK, We Work Remotely, Jobicy, Remotive and identifiable Braintrust opportunities. Verify complete country, engagement and time-zone conditions. Remote/region labels, an ambiguous country abbreviation or platform payouts alone do not prove eligibility for this exact role from the configured location. Seek explicit supported terms without conflicting exclusions. Source API delay does not automatically describe website or original-employer delay.
 
 ### D. Paid client projects
+
+Use the configured client-project alternatives as well as the employment stack when explicitly selected. A real paid buyer brief may request a supported capability without the employment backend or with a different/absent backend. Record exact paid-client scope, deliverables and matching capability keys; retain every actual mandatory backend criterion in the 75% score. Generic titles need not say freelance/contract/project, and tags, bidder text, seller services or platform identity do not prove buyer scope. A contract uses this project path only with evidenced paid client deliverables. A hidden buyer name stays unknown when an exact brief and marketplace project ID identify it; separate proposal forms still require exact owner/project-ID and listing/navigation evidence.
 
 Use the complete maintained `sources/opportunity-sources.json` catalog and project/platform-selection references. Derive its current inventory dynamically and preserve original identities. Search concrete briefs through applicable selected marketplaces, including XPlace, Upwork, Freelancer.com, Freelancehunt, PeoplePerHour, Workana, Freelancermap and Guru; FL.ru and Codeur additionally require supported language/country/payment applicability.
 
@@ -119,7 +123,7 @@ Run separate searches for every selected role family in the configured search la
 - `{role_title_variant} {capability} {configured_geography}`.
 - `{second_capability} {accepted_role_alternative}`.
 - `{selected_leadership_or_analysis_family} {technical_context}`.
-- `{client_outcome} {capability} {contract_or_project_terms}`.
+- `{client_outcome} {capability} {contract_or_project_terms}`. Search each selected project capability independently of employment combinations; use alternate exact-title/client-outcome searches for incomplete categories or links, without merging similarly titled opportunities.
 - Equivalent supported terms in each configured language.
 
 Expand relevant title/spelling variants, including consultant and contract terminology when selected. Do not apply a generic manager/lead/analyst blacklist or blanket `-degree` filter that hides preferred-degree/equivalent-experience roles. Query breadth does not relax the final criteria.
@@ -180,7 +184,7 @@ Provide a compact ranked index and a card for every qualifying opportunity withi
 - Project outcome, scope, budget/payment basis, duration/deadline and material proposal conditions where applicable.
 - A short tailored **Draft — not sent**, following [recipient contracts](skills/workhunt-apply/references/recipient-drafts.md): employer requirement/evidence/contribution; client result/bounded paid deliverable/acceptance; agency exact vacancy/team contribution. A network/admission draft is separate source-access material, never a qualifying card. Keep selected portfolio relevance and individual contribution/disclosure evidence. Unresolved placeholders or factual/terms reviews remain not-ready. Never claim an attachment, sending, unsupported capability, unconfirmed rate or availability. CV selection is not attachment.
 
-After verified cards, show a separate compact promising-but-unverified table for strong unreported leads with supported fit of at least 75% that lack freshness, route, eligibility or identity resolution. Name missing evidence and the next check. They contribute zero to the verified count and receive no recommendation letters. Excluded, stale and suppressed records belong in the evidence/exclusion summary.
+After verified cards, show a separate compact promising-but-unverified table for strong unreported leads with supported fit of at least 75% that lack freshness, route, eligibility or identity resolution. Include every such new project within the explicitly selected project policy; do not reintroduce its employment-stack requirement at reporting. State score/gaps, exact link, missing evidence and the next check. This manual visibility rule does not change notification silence or activate alerts. They contribute zero to the verified count and receive no recommendation letters. Excluded, stale and suppressed records belong in the evidence/exclusion summary.
 
 Finish with actual coverage, access limits, exclusion/duplicate counts and unfinished lanes. Report the real count and shortfall against the resolved minimum. This explicit manual invocation receives a result even at zero; notification silence does not apply. If output limits prevent every card, preserve the full private report, use numbered chat batches where possible and identify exactly what remains undelivered. Do not silently truncate.
 

@@ -8,6 +8,7 @@ This is an unfilled request template, not execution authority. Fill it only from
 - CV selection: {{private_cv_manifest_path}}; retain unknowns and unresolved versions.
 - Source selection and permitted lanes: {{source_selection}}. Resolve source aliases without merging opportunities; keep admission separate from identified work.
 - Roles and supported capabilities: {{configured_roles_and_capabilities}}
+- Employment stack and separately confirmed project policy: {{employment_required_stack}}, {{project_stack_policy}}. Snapshot explicit choices only for a new brief; preserve saved policy or absence.
 - Current work-location policy: {{base_country}}, {{work_path}}, {{explicit_exclusion_conditions}}, {{unknown_eligibility_handling}}. Read current private policy and its provenance; do not infer citizenship, permits or preferences from CV location.
 - Run type and execution context: {{run_type}}, {{execution_context}}
 - Fixed anchor/time zone and source windows: {{run_anchor}}, {{time_zone}}, {{source_windows}}
@@ -22,3 +23,5 @@ Resolve the latest explicit instruction into one complete brief before research.
 Require exact full-listing evidence, current country/work-path eligibility, supported publication/refresh events, the exact application route, fit and history checks. Remote labels, publisher nationality and sponsorship wording do not establish legal status. Keep uncertain eligibility outside qualified recommendations and distinguish full-ad absence of a requirement from employer confirmation.
 
 Present the actual qualified count and shortfall without relaxing gates. Keep drafts unsent and all filled profile, eligibility, packet, provenance and rendered evidence under the private workspace. This request does not itself authorize an application, upload, account connection or publication.
+
+For manual reporting, show new promising selected-policy projects with supported fit of at least 75% and unresolved independent checks separately, with score/gaps, link and next check. They count zero qualified and receive no recommendation letter; notification silence remains unchanged.

@@ -19,7 +19,7 @@ def effective_review(job, review, profile, now, found=None, applied=None, brief=
 def canonical_review(job):
     """Adapt known canonical fields conservatively; ambiguous historical claims stay unresolved."""
     review = dict(job.get("review") or {})
-    for key in ("requirements", "publication", "publication_events", "source_membership", "degree_status", "degree_evidence", "cv_file", "duplicate_checked", "role", "stack", "geography", "full_description_read", "description_evidence"):
+    for key in ("requirements", "publication", "publication_events", "source_membership", "degree_status", "degree_evidence", "cv_file", "duplicate_checked", "role", "stack", "project_scope", "geography", "full_description_read", "description_evidence"):
         if key in job and key not in review:
             review[key] = job[key]
     if isinstance(job.get("fit"), dict):

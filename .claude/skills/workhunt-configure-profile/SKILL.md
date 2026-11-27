@@ -22,6 +22,8 @@ The private profile's `cv_manifest` pointer drives packet selection. Multiple cu
 
 No CV rewrite, application, message, upload, account connection, publication or scan follows from setup. Installing packages and external submissions are separate tasks. Historical user confirmation is evidence with its provenance, not independently observed submission.
 
+Separate employment and client-project preferences. Populate `search_brief.project_stack_policy` only from an explicit sourced user-confirmation decision, never a CV technology fact. Keep capability keys, discovery patterns and adoption provenance private; the shared default remains unconfigured with no alternatives. Saved policy presence/absence is historical, while current country/work-path policy remains independently applied.
+
 ## Workspace resolution
 
 Run this skill's `scripts/resolve_workspace.py [--workspace PATH]` when the workspace is uncertain. Precedence is explicit path, current checkout, then private `workspace.local.json` fallback; `workspace.json` is an unbound portable descriptor. Shared references under `references/workspace/` point to exact files in that resolved workspace; private records and CVs are never bundled. Keep automatic skill selection enabled.

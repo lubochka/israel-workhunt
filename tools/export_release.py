@@ -9,15 +9,17 @@ ROOT = Path(__file__).resolve().parent.parent
 FORBIDDEN_PARTS = {".git", ".workhunt", "__pycache__", ".venv", "tmp", "output", "validation", "data", "runs", "fixture-runs", "outcomes", "reports", "logs"}
 FORBIDDEN_NAMES = {"profile.json", "profile-evidence.json", "professional-summary.md", "cv-manifest.json", "applications.json", "reviews.json", "manual-opportunities.json", ".env", "workspace.local.json", "source-health.json", "employer-overrides.json", "legacy-collector-5f723c0.json", "generate_legacy_brief_fixture.py", "workhunt_prompt.md"}
 # Only this reviewed, parameterized public variant may use the otherwise private prompt name.
-PUBLIC_PROMPT_SHA256 = "23ea2d4ecb633d7513b7b380be720ba6c0450a73369b9fdf1f11ffd2f2dc493d"
+PUBLIC_PROMPT_SHA256 = "e2ad3f968d2a0e022bfb20d60652b1f52504e02419dba2484c6befd9117a4747"
 PUBLIC_PROMPT_MARKER = b"<!-- Workhunt public prompt: unfilled candidate-configured workflow; completed requests stay private. -->"
 FORBIDDEN_SUFFIXES = {".pdf", ".docx", ".doc", ".pem", ".key", ".pyc", ".pyo"}
-PRIVATE_DIAGNOSTIC_FIELDS = {"binding", "ignored_observation", "ignored_attempts", "other_observations"}
+PRIVATE_DIAGNOSTIC_FIELDS = {"binding", "ignored_observation", "ignored_attempts", "other_observations", "project_scope", "stack_check"}
 
 
 def has_private_diagnostics(value):
     """Distributed JSON must not retain nested runtime observation diagnostics."""
     if isinstance(value, dict):
+        if "project_stack_policy" in value and value["project_stack_policy"] != {"configured": False, "alternatives": [], "provenance": {}}:
+            return True
         return bool(PRIVATE_DIAGNOSTIC_FIELDS & value.keys()) or any(has_private_diagnostics(item) for item in value.values())
     if isinstance(value, list):
         return any(has_private_diagnostics(item) for item in value)
@@ -32,7 +34,7 @@ def inventory(root=ROOT):
     for rel in paths:
         path = root / rel
         public_prompt = rel.as_posix() == "workhunt_prompt.md"
-        if rel.is_absolute() or ".." in rel.parts or set(rel.parts) & FORBIDDEN_PARTS or (rel.name in FORBIDDEN_NAMES and not public_prompt) or rel.suffix.lower() in FORBIDDEN_SUFFIXES or rel.name.startswith((".env.", "packet-evidence", "packet-authorization", "submission-event", "draft-request", "local-draft", "coverage-observation", "observation-binding-", "outcome-events", "source-activity")) or rel.suffix.lower() == ".log":
+        if rel.is_absolute() or ".." in rel.parts or set(rel.parts) & FORBIDDEN_PARTS or (rel.name in FORBIDDEN_NAMES and not public_prompt) or rel.suffix.lower() in FORBIDDEN_SUFFIXES or rel.name.startswith((".env.", "packet-evidence", "packet-authorization", "submission-event", "draft-request", "local-draft", "coverage-observation", "observation-binding-", "angular-project-", "outcome-events", "source-activity")) or rel.suffix.lower() == ".log":
             raise ValueError("Private or unsupported export entry: " + str(rel))
         if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(root.resolve()):
             raise ValueError("Export accepts ordinary files inside the release root only: " + str(rel))

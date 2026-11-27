@@ -2,6 +2,7 @@
 import copy
 from records import norm, timestamp, url_identity
 from routes import normalize_route, observed_form
+from opportunity_types import identified_project, route_owner_matches
 
 DEFAULT_POLICY = {
     "base_country": None, "work_path": None,
@@ -57,11 +58,11 @@ def exact_provenance(job, evidence, now, review=None):
         route = normalize_route(route)
         checked = timestamp(route.get("checked_at") or route.get("verified_at"))
         identifier = norm(route.get("job_identifier") or route.get("job_id_in_page"))
-        expected = {norm(job.get(k)) for k in ("id", "job_id", "source_job_id", "employer_requisition_id", "title")} - {""}
-        if (observed_form(route, allow_proposal=job.get("type") == "project")
+        expected = {norm(job.get(k)) for k in ("id", "job_id", "source_job_id", "project_id", "employer_requisition_id", "title")} - {""}
+        if (observed_form(route, allow_proposal=identified_project(job, review))
                 and source and source == url_identity(route.get("source_url") or route.get("exact_job_url") or route.get("url"))
                 and url_identity(route.get("listing_url")) == listing and identifier in expected
-                and norm(route.get("employer")) == norm(job.get("company") or job.get("employer_or_client"))
+                and route_owner_matches(job, route, review)
                 and text(route.get("evidence")) and text(route.get("navigation_evidence"))
                 and checked and checked.timestamp() <= now.timestamp()):
             return True

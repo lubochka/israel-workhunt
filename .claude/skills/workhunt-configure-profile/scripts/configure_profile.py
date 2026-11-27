@@ -108,6 +108,11 @@ def map_ledger(ledger, shared=None):
             if not isinstance(profile["work_location_policy"], dict):
                 raise ValueError("Work-location policy requires a structured user confirmation")
             profile["work_location_policy"]["provenance"] = {key: copy.deepcopy(decision[key]) for key in ("source_id", "locator", "evidence")}
+        if decision["target"] == "search_brief" and isinstance(profile["search_brief"], dict) and "project_stack_policy" in profile["search_brief"]:
+            policy = profile["search_brief"]["project_stack_policy"]
+            if not isinstance(policy, dict):
+                raise ValueError("Project policy requires a structured user confirmation")
+            policy["provenance"] = {key: copy.deepcopy(decision[key]) for key in ("source_id", "locator", "evidence")}
     evidence["tenure_calculation"] = {"kind": "calculation", "method": "union of exact half-open date intervals", "input_fact_ids": interval_ids,
                                         "excluded_or_unresolved_fact_ids": excluded, "supported_non_overlapping_days": non_overlapping_days(intervals) if intervals else None}
     profile["configured"] = True

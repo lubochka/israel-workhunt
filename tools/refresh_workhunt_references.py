@@ -21,6 +21,8 @@ def plan(root=ROOT):
     empty_location_policy = {"base_country": None, "work_path": None, "exclude_required_foreign_conditions": [], "unknown_eligibility": None, "candidate_legal_status": "unknown", "provenance": {}}
     if template.get("work_location_policy") != empty_location_policy:
         raise ValueError("Shared work-location policy must remain empty and unconfigured")
+    if template.get("search_brief", {}).get("project_stack_policy") != {"configured": False, "alternatives": [], "provenance": {}}:
+        raise ValueError("Shared project policy must remain empty and unconfigured")
     ledger = json.loads((root / "templates/profile-evidence.template.json").read_text(encoding="utf-8"))
     if any(ledger.get(key) for key in ("sources", "facts", "conflicts", "unknowns", "decisions")):
         raise ValueError("Shared evidence template must remain empty")

@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from profile_config import shared_root, private_path
 from records import norm, url_identity
-from opportunity_types import identified_project, source_access_record
+from opportunity_types import client_project_type, identified_project, source_access_record
 
 
 def supported_text(value):
@@ -101,6 +101,8 @@ def opportunity_candidate(record):
     if source_access_record(record, record.get("review")):
         return False
     if record.get("response_mode") == "client_invitation":
+        return identified_project(record, record.get("review"))
+    if record.get("response_mode") == "project_proposal" and client_project_type(record, record.get("review")):
         return identified_project(record, record.get("review"))
     return (record.get("record_kind") == "opportunity"
             and record.get("response_mode") in {"vacancy_application", "project_proposal", "agency_vacancy", "agency_screening"}

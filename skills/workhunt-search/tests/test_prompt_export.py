@@ -12,6 +12,23 @@ import export_release
 
 
 class PublicPromptExportTests(unittest.TestCase):
+    def test_project_diagnostics_and_filled_policy_are_private_but_empty_template_exports(self):
+        path = self.stage("metadata.json", b"{}\n")
+        for value in ({"project_scope": {"paid_client_work": True}}, {"nested": [{"stack_check": {"passed": True}}]},
+                      {"search_brief": {"project_stack_policy": {"configured": True, "alternatives": [], "provenance": {"evidence": "Synthetic private adoption"}}}}):
+            path.write_text(json.dumps(value), encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, "Private observation diagnostics"):
+                export_release.export(self.output, self.root)
+            self.assertFalse(self.output.exists())
+        empty = {"search_brief": {"project_stack_policy": {"configured": False, "alternatives": [], "provenance": {}}}}
+        path.write_text(json.dumps(empty), encoding='utf-8')
+        self.assertEqual(export_release.export(self.output, self.root), 1)
+
+    def test_project_diagnostic_filename_is_rejected_even_without_json_payload(self):
+        self.stage("angular-project-fixture.txt", b"Synthetic diagnostic only\n")
+        with self.assertRaisesRegex(ValueError, "Private or unsupported export entry"):
+            export_release.export(self.output, self.root)
+        self.assertFalse(self.output.exists())
     def test_tracked_observation_diagnostic_artifacts_are_rejected_before_export(self):
         self.stage("observation-binding-fixture.json", b"{}\n")
         with self.assertRaisesRegex(ValueError, "Private or unsupported export entry"):

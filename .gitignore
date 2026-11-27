@@ -48,3 +48,4 @@ coverage-observation*.json
 outcome-events*.json
 source-activity*.json
 observation-binding-*
+angular-project-*

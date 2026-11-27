@@ -40,7 +40,12 @@
     "tracks": [],
     "required_stack": [],
     "manual_source_freshness_hours": {},
-    "manual_freshness_policy": {}
+    "manual_freshness_policy": {},
+    "project_stack_policy": {
+      "configured": false,
+      "alternatives": [],
+      "provenance": {}
+    }
   },
   "directory_enabled": false,
   "directory_url": "",
