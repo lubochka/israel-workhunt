@@ -17,6 +17,10 @@ Use [workhunt-configure-profile](skills/workhunt-configure-profile/SKILL.md) wit
 
 The CV should stay outside this repository. `.workhunt/` is ignored and contains all populated profiles, histories, runs, drafts, selected CV references and generated pages. Ignore rules are not permission to publish that directory. Do not import private Git history into a public repository.
 
+### Configure from your CV in Codex
+
+Use the complete [CV setup prompt](israel-workhunt-cv-setup-prompt.txt) to adapt this checkout to your own supported experience and confirmed preferences. Open a Codex chat in the checkout, paste the whole prompt, and attach your CV or explicitly select its local path. [The setup guide](docs/CV_PROFILE_SETUP.md) explains first setup, safe updates, private outputs and readiness checks. Reading, copying or publishing the prompt does not invoke it; setup does not authorize a search or rewrite the original CV.
+
 ## Local use
 
 Python 3.11 or newer is supported. `requirements.txt` supplies IANA time zones on systems lacking a time-zone database. Dependency installation is a separate user action.

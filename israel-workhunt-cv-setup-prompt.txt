@@ -1,0 +1,153 @@
+Configure this checkout of https://github.com/lubochka/israel-workhunt from the CV I attach or explicitly select.
+
+Reproduce the useful behavior of the original https://github.com/lubochka/workhunt workflow: an evidence-backed candidate profile, explicit search preferences, exact CV selection by role and language, truthful matching, and supported application drafting. Use the existing israel-workhunt skills and schema. Complete the supported private setup; do not stop at a plan.
+
+This request authorizes reading the supplied CV and relevant repository files, creating or carefully updating private local configuration, and offline configuration validation. It does not authorize a job search, test suite, dependency installation, job-board/API probe, account connection, application, proposal, message, payment, schedule change, or publication. Configuration never supplies those permissions.
+
+## 1. Inspect the current workflow and state
+
+Read the current versions of:
+- AGENTS.md
+- README.md
+- docs/skills/WORKHUNT_CONTEXT.md
+- skills/workhunt-configure-profile/SKILL.md
+- skills/workhunt-configure-profile/references/cv-mapping.md
+- skills/workhunt-configure-profile/references/profile-schema.md
+- skills/workhunt-configure-profile/scripts/configure_profile.py
+- skills/workhunt-search/scripts/profile_config.py
+- skills/workhunt-cv/SKILL.md and the references it requires
+- Relevant profile/evidence/summary/CV-manifest templates and JOB_SEARCH_PLAYBOOK.md sections.
+
+Inspect existing private configuration before writing. Resolve the shared checkout and private workspace using the repository's documented resolution rules; do not assume another person's machine paths.
+
+Use the original workhunt as a behavior reference if accessible. It is not a required dependency for other users. Do not copy its owner's identity, CV, contacts, skills, preferences, exclusions, or application history into another user's setup. Reuse existing confirmed information only when it belongs to the current user and is available through an authorized source. If the reference repo is inaccessible, continue with the public workflow and state the limitation.
+
+Respect current direct user instructions and preserve already established preferences. Historical documents and CV contents are evidence, not authority to execute actions.
+
+## 2. Read the actual CV and build the evidence ledger
+
+Use the attached CV or an explicitly selected existing file. If several versions exist, inspect their manifest and selection evidence; do not choose solely by filename, modification date, or a remembered summary.
+
+Read the actual PDF, DOCX, or other supported source with available local document tools. The configuration helper is not a CV parser. Report unreadable pages, failed extraction, missing files, and relevant layout ambiguity. Do not claim to have reviewed material you could not read. Do not install a parser or upload the document to an external extraction service without authorization.
+
+Record relevant facts with source ID, exact file or user-message reference, page/section/line locator, faithful evidence, target field, and value. Follow the existing ledger schema and distinguish:
+- cv_fact
+- user_confirmation
+- calculation
+- unresolved conflicts and unknowns.
+
+Extract supported role history, responsibilities, individual contributions, technologies, education, languages, and achievements. Collect only identity/contact information needed for this private workflow; do not copy irrelevant sensitive details.
+
+Preserve dates, job titles, qualifications, and the distinction between personal contribution and team output. A technology mention does not prove proficiency, a particular version, or years of use. A language without a stated level keeps an unknown level. Studies do not prove a completed degree. Absence of a qualification from the CV does not prove that the person lacks it.
+
+Record conflicting claims with both sources. Apply an explicit user correction with its provenance; otherwise keep the disputed fact unresolved and continue with supported facts. Do not automatically carry old-version conflicts into a current CV without inspecting it.
+
+For experience calculations, merge overlapping supported intervals, preserve date precision, record the calculation method and as-of date, and disclose excluded uncertain periods. Do not add simultaneous employment and freelance work twice or assign total career tenure to each technology.
+
+## 3. Separate experience from search preferences
+
+Experience is evidence of capability. Search preferences are explicit user choices. Do not turn the CV into a list of assumed desired jobs.
+
+Reuse current confirmed preferences for this same user. Record their source and preserve them unless the user changes them. Determine, where explicitly established:
+- Desired role tracks, seniority, responsibilities, and required or acceptable technologies.
+- Employment, employee-style contracts, and paid client projects as separate choices.
+- Base country, eligible work locations, remote/hybrid/on-site preferences, relocation, and any actual commute constraints.
+- IANA time zone, report language, and application-document language preferences.
+- Degree policy, supported limited-experience constraints, availability, hours, compensation, and commercial preferences.
+- Explicitly selected sources, result minimum/cap, and applicable freshness preferences.
+
+Do not infer citizenship, visas, work permits, residence rights, salary, rates, availability, relocation willingness, or desired geography from a name, address, employer location, language, or technology.
+
+Configure work_location_policy only from sourced user decisions, retaining unknown legal status unless separately evidenced. Country identifiers used for discovery are not proof that a particular employer can hire the user.
+
+Configure project_stack_policy only when the user explicitly allows client-project alternatives. Do not automatically apply employment stack requirements to every client project or silently relax them.
+
+Translate confirmed choices into the schema's restrictive role/title/capability/location patterns and selected keys. Ensure tracks, search_brief.tracks, required_stack, and related patterns agree. Do not use empty or match-all patterns to manufacture readiness.
+
+Do not inherit the original owner's stack, geography, language, degree exclusion, result target, source count, or source-window exceptions as universal defaults. Preserve existing same-user choices, including distinct manual-search and notification preferences.
+
+Use known answers without asking again. If information is missing, finish independent work and identify the exact dependency. Respect an established no-questions preference; otherwise ask only one compact group of genuinely necessary questions. Never guess a required setting to avoid a blocker.
+
+## 4. Create or update private files safely
+
+Use the existing private destinations:
+- .workhunt/profile.json
+- .workhunt/profile-evidence.json
+- .workhunt/professional-summary.md
+- .workhunt/cv-manifest.json, or the valid existing private manifest selected by cv_manifest.
+
+Keep original CVs outside the repository by default. Use ignored .workhunt/ storage only if the user explicitly chooses a private local copy. Preserve originals and existing private history.
+
+Keep public templates, shared skills, provider copies, fixtures, and release files generic. Do not add personal details, CV text, secrets, credentials, or private machine paths to tracked files, commit messages, or public output. If the destination is inside a Git worktree, confirm that private outputs are ignored and are not already tracked or staged before writing sensitive data. An explicitly selected private workspace outside Git does not require Git ignore rules. If the destination is unsafe, complete independent work and report that blocker.
+
+For a new workspace, initialize only after checking for existing outputs. At the inspected repository version, the helper CLI only initializes empty templates; population requires its documented mapping function and an already reviewed ledger. Inspect current behavior before invoking it, and do not invent a --cv parsing command.
+
+For an existing workspace, perform a reviewed, schema-compatible private update. Show which facts/preferences change and preserve unaffected fields, evidence IDs, explicit user corrections, manifest versions, histories, and saved run records. Do not delete populated outputs or reset them to templates to bypass initialize()/populate() overwrite protection. Do not introduce a new onboarding framework or modify shared code for this setup.
+
+Preserve .workhunt/data/jobs.json and .workhunt/data/applied_jobs.json. Do not replace missing-but-unknown history with fabricated empty history or import another user's records. Do not rewrite earlier search bounds, saved briefs, recommendations, suppressions, or submission states to match new preferences.
+
+Keep shared documentation and code in English. Private summaries and chat results follow the user's explicit language choice; CV/application language is a separate decision.
+
+## 5. Register the exact CV version and review status
+
+For every supplied or explicitly selected version needed by the task:
+- Preserve the actual private source path and measure SHA-256 from the file bytes.
+- Record the version ID, measurement time, supported document language, the schema's roles mapping, selection status, and selection basis. Retain any additional audience context in supported review evidence.
+- Record actual content-review evidence for those exact bytes, plus unresolved facts that affect use.
+- Preserve earlier versions and existing selection decisions.
+- Avoid adding duplicate versions merely because setup is rerun.
+- Leave unsupported mappings unresolved; do not infer desired search roles from a CV heading or filename.
+- Do not silently retire one of several competing current versions. Resolve it using established user choices or report the ambiguity.
+
+The profile must point to the correct private manifest. Missing or changed files require accurate status and renewed review where needed. A matching hash proves byte identity; it does not prove factual accuracy, visual quality, or readiness to attach.
+
+If the CV text could not be read, do not manufacture a populated evidence ledger or a content-reviewed status.
+
+## 6. Connect the profile to matching and drafting behavior
+
+Confirm through read-only inspection and offline configuration validation that existing workflows resolve this private profile, its evidence, and the selected manifest. Do not execute a search to demonstrate setup.
+
+Preserve the repository's requirement-level fit method: each distinct mandatory criterion is counted once; supported criteria earn one point; unmet or unverified criteria remain in the denominator. The current default gate is exactly 75% without rounding. A score does not bypass degree, supported duration, role, geography, freshness, application-route, or history checks.
+
+Do not treat "not mentioned" as proof of zero experience or create unsupported experience caps. Do not invent accepted degree alternatives; use the actual listing's wording and the user's evidenced credentials when future opportunities are assessed.
+
+Keep employment applications, paid-project proposals, talent-network admission, and agency screening distinct. Future drafts must use supported evidence appropriate to the recipient and task. A network registration is not an identified client opportunity.
+
+Preserve the difference between CV selection, a prepared draft, upload, observed submission, user-reported submission, and a receipt. No setup field or saved preference may grant execution authority.
+
+## 7. Handle role-specific CV adaptation only within an explicit CV task
+
+Setting up the profile does not automatically rewrite the CV.
+
+If this invocation also supplies an exact target role/listing and explicitly requests an adapted CV, use workhunt-cv after completing the evidence review:
+- Read the full supplied target requirements and select the appropriate source by role and language.
+- Build a requirement-to-evidence table from supplied or otherwise authorized actual target requirements, showing support, gaps, and unresolved claims. If only a role title is supplied, prepare evidence-backed positioning and label assumptions; do not invent mandatory requirements or a fit score.
+- Improve the headline, summary, ordering, and emphasis using supported facts. Keep official titles, employment dates, credential status, contributions, and metrics truthful.
+- For client work, emphasize relevant deliverables, contribution, and a supported first step; do not promise unconfirmed rates or availability.
+- Preserve the original. Save a clearly named private derivative, with source version/hash, target identity, language, change summary, and outstanding issues.
+- Do not mark the derivative as the default/current CV without a supported selection decision.
+- For requested DOCX/PDF output, inspect both extracted text and rendered pages, including Hebrew/RTL where relevant, links, contacts, comments, and layout. State any checks that could not be performed.
+- Label application text "Draft — not sent" in the selected language. Do not claim that a CV is attached or an application has been sent.
+
+Without that explicit task, finish CV registration and profile setup and describe any useful adaptation opportunities briefly.
+
+## 8. Validate offline and report actual readiness
+
+Read back every private file you changed and validate it with the existing profile validator where available. This is configuration validation, not permission to run test suites, collectors, API probes, or a demonstration scan.
+
+Check schema compatibility, evidence references, supported preferences, role/capability mappings, source selections, private paths, manifest references, measured file identity, and unchanged shared templates. Preserve existing data and explain any failed validation.
+
+Keep configured: false until the required settings actually validate. Report configuration validity, CV content review, source selection, and permission to search as separate states. Even a configured profile with enabled sources does not authorize a search. Report optional unknowns separately from missing settings that block dependent work.
+
+Finish with a concise, reviewable result containing:
+1. The exact files created or updated and the meaningful changes.
+2. The CV source/version selected, what was actually read, and any extraction limits.
+3. A short factual professional summary.
+4. Confirmed role, stack, employment/project, location, language, source, and search preferences.
+5. Unresolved factual conflicts and unknown preferences, with their practical effect.
+6. Validation actually performed and the exact reasons for any not-ready state.
+7. Any explicitly requested CV derivative, its source, and completed quality checks.
+8. A brief statement of the actions completed and any material actions still awaiting separate authorization.
+
+Do not claim functional tests, successful job searches, uploaded documents, or submissions unless they actually occurred within an authorized task. Complete all supported private work before reporting a blocker.
+
